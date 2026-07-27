@@ -341,7 +341,7 @@
   .xlsx-preview{ max-height:150px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px; }
   .xlsx-preview table{ border-collapse:collapse; font-size:10px; width:100%; }
   .xlsx-preview td, .xlsx-preview th{ border:1px solid #ddd; padding:2px 4px; }
-  .img-preview{ max-height:150px; text-align:center; }
+  .img-preview{ text-align:center; }
   .img-preview img{ max-height:150px; max-width:100%; border-radius:6px; border:1px solid var(--line); }
 
   .empty-note{
@@ -489,6 +489,19 @@
         <label class="f-label">اسم النموذج</label>
         <input type="text" class="f-input" id="editSheetName">
       </div>
+      <div>
+        <label class="f-label">مقاس الورقة (مم)</label>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="number" class="f-input" id="editSheetWidthMm" placeholder="العرض" min="1" step="0.1" style="text-align:center;">
+          <span style="color:var(--muted); font-weight:700;">×</span>
+          <input type="number" class="f-input" id="editSheetHeightMm" placeholder="الطول" min="1" step="0.1" style="text-align:center;">
+        </div>
+        <div class="orient-pick" style="margin-top:8px;">
+          <button type="button" class="btn ghost" onclick="setEditSheetSize(210,297)">A4 طولي</button>
+          <button type="button" class="btn ghost" onclick="setEditSheetSize(297,210)">A4 عرضي</button>
+        </div>
+        <div class="hint">العرض × الطول بالمليمتر. A4 = 210×297. المقاس ده هو اللي هيتطبع بيه فعليًا.</div>
+      </div>
       <div id="editSheetImageBlock" style="display:none;">
         <label class="f-label">الصورة</label>
         <div class="img-preview"><img id="editSheetImagePreview"></div>
@@ -575,14 +588,24 @@ async function persist(){
   if (saving){ pendingSave = true; return; }
   saving = true;
   try {
-    await fetch('/api/state', {
+    const res = await fetch('/api/state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(snapshotState())
     });
+    if (!res.ok){
+      // Fetch doesn't throw on 4xx/5xx by itself — without this check, a
+      // failed save (e.g. payload too large) was silent: the item stayed
+      // visible locally but was never actually saved, and the next 15s poll
+      // would then overwrite it with the old server data, making it look
+      // like the item "disappeared by itself".
+      let msg = 'تعذر حفظ التعديل على السيرفر (خطأ ' + res.status + ').';
+      if (res.status === 413) msg += ' على الأغلب حجم الملفات/الصور المخزّنة بقى كبير قوي.';
+      throw new Error(msg);
+    }
   } catch(e){
     console.error(e);
-    alert('تعذر حفظ التعديل على السيرفر. تأكد من اتصال الإنترنت وحاول تاني.');
+    alert((e && e.message) || 'تعذر حفظ التعديل على السيرفر. تأكد من اتصال الإنترنت وحاول تاني.');
   } finally {
     saving = false;
     if (pendingSave){ pendingSave = false; persist(); }
@@ -591,6 +614,10 @@ async function persist(){
 
 // Poll every 15s so changes made on other devices show up here too.
 setInterval(async () => {
+  // Don't let a background refresh overwrite a change we just made (or are
+  // still in the middle of saving) — otherwise the poll can race the save
+  // and wipe out a just-added item from the screen before it's confirmed.
+  if (saving || pendingSave) return;
   try {
     const res = await fetch('/api/state');
     if (!res.ok) return;
@@ -975,29 +1002,56 @@ document.getElementById('excelFile').addEventListener('change', (e) => {
   reader.readAsArrayBuffer(file);
 });
 
+// Every image is stored as a base64 string inside one big shared JSON blob
+// on the server, and the *entire* blob is re-sent on every save. Phone-camera
+// photos (often 3000px+ wide, several MB each) make that blob grow fast until
+// it trips the server's request-size limit — which is exactly what caused
+// saves to fail silently. Downscaling + re-encoding as JPEG here cuts a
+// typical photo down to a few hundred KB while staying sharp enough to print.
+function compressImageDataUrl(dataUrl, maxDim, quality){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { naturalWidth: w, naturalHeight: h } = img;
+      if (w > maxDim || h > maxDim){
+        const scale = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl); // fall back to original if it fails
+    img.src = dataUrl;
+  });
+}
+
 document.getElementById('imageFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = async (ev) => {
+    const compressed = await compressImageDataUrl(ev.target.result, 2000, 0.85);
     const img = new Image();
     img.onload = () => {
       const mmToPx = 96 / 25.4;
       const width_mm = img.naturalWidth / mmToPx;
       const height_mm = img.naturalHeight / mmToPx;
       pendingImage = {
-        dataUrl: ev.target.result,
+        dataUrl: compressed,
         width_mm, height_mm,
         orientation: width_mm > height_mm ? 'landscape' : 'portrait'
       };
-      document.getElementById('imagePreviewImg').src = ev.target.result;
+      document.getElementById('imagePreviewImg').src = compressed;
       document.getElementById('imagePreviewWrap').style.display = 'block';
       document.getElementById('imageOrientWrap').style.display = 'block';
       document.getElementById('imgPortraitBtn').classList.toggle('sel', pendingImage.orientation === 'portrait');
       document.getElementById('imgLandscapeBtn').classList.toggle('sel', pendingImage.orientation === 'landscape');
       updateSubmitEnabled();
     };
-    img.src = ev.target.result;
+    img.src = compressed;
   };
   reader.readAsDataURL(file);
 });
@@ -1072,6 +1126,8 @@ function openEditSheetModal(fileKey, sheetId){
   editSheetTarget = { fileKey, sheet:s };
   editSheetPendingImg = null;
   document.getElementById('editSheetName').value = s.sheet;
+  document.getElementById('editSheetWidthMm').value = Math.round(s.width_mm * 10) / 10;
+  document.getElementById('editSheetHeightMm').value = Math.round(s.height_mm * 10) / 10;
   const block = document.getElementById('editSheetImageBlock');
   if (s.type === 'image'){
     block.style.display = 'block';
@@ -1080,6 +1136,10 @@ function openEditSheetModal(fileKey, sheetId){
     block.style.display = 'none';
   }
   document.getElementById('editSheetOverlay').classList.add('show');
+}
+function setEditSheetSize(w, h){
+  document.getElementById('editSheetWidthMm').value = w;
+  document.getElementById('editSheetHeightMm').value = h;
 }
 function openCropperForEdit(){
   if (!editSheetTarget) return;
@@ -1092,33 +1152,33 @@ function openCropperForEdit(){
 function submitEditSheet(){
   const name = document.getElementById('editSheetName').value.trim();
   if (!name || !editSheetTarget) return;
+  const widthMm = parseFloat(document.getElementById('editSheetWidthMm').value);
+  const heightMm = parseFloat(document.getElementById('editSheetHeightMm').value);
+  if (!widthMm || !heightMm || widthMm <= 0 || heightMm <= 0){
+    alert('من فضلك اكتب مقاس ورقة صحيح (العرض والطول بالمليمتر).');
+    return;
+  }
   const { fileKey, sheet } = editSheetTarget;
+  // The size the person types here is what actually gets used for printing
+  // (see printForm()), so we trust it as-is instead of re-deriving it from
+  // the image's pixel dimensions — that pixel-based guess is exactly what
+  // produced wrong paper sizes for photographed forms in the first place.
+  const sizeExtra = { width_mm: widthMm, height_mm: heightMm, orientation: widthMm > heightMm ? 'landscape' : 'portrait' };
 
   const finish = (extra) => {
     if (sheet.isBase){
-      sheetOverrides[sheet.id] = { ...(sheetOverrides[sheet.id] || {}), sheet:name, ...extra };
+      sheetOverrides[sheet.id] = { ...(sheetOverrides[sheet.id] || {}), sheet:name, ...sizeExtra, ...extra };
     } else {
       const arr = customSheets[fileKey] || [];
       const idx = arr.findIndex(x => x.id === sheet.id);
-      if (idx > -1) arr[idx] = { ...arr[idx], sheet:name, ...extra };
+      if (idx > -1) arr[idx] = { ...arr[idx], sheet:name, ...sizeExtra, ...extra };
     }
     persist();
     closeModal('editSheetOverlay');
     render();
   };
 
-  if (editSheetPendingImg){
-    const im = new Image();
-    im.onload = () => {
-      const mmToPx = 96 / 25.4;
-      const width_mm = im.naturalWidth / mmToPx;
-      const height_mm = im.naturalHeight / mmToPx;
-      finish({ img:editSheetPendingImg, width_mm, height_mm, orientation: width_mm > height_mm ? 'landscape' : 'portrait' });
-    };
-    im.src = editSheetPendingImg;
-  } else {
-    finish({});
-  }
+  finish(editSheetPendingImg ? { img: editSheetPendingImg } : {});
 }
 
 /* ============================================================
@@ -1157,7 +1217,9 @@ function applyCrop(){
   let canvas, dataUrl;
   try {
     canvas = cropperInstance.getCroppedCanvas();
-    dataUrl = canvas.toDataURL('image/png');
+    // JPEG instead of PNG: PNG is lossless so it stays huge for photos and
+    // pushes the shared state blob closer to the server's size limit.
+    dataUrl = canvas.toDataURL('image/jpeg', 0.85);
   } catch (err){
     console.error(err);
     alert('تعذر تطبيق القص على الصورة دي. جرّب تاني، ولو استمرت المشكلة أعد رفع الصورة من جهازك.');
