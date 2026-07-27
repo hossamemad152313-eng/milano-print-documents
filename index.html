@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MILANO SPORT SHOES — Print Documents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%230d1321'/%3E%3Ctext x='32' y='43' font-family='Georgia,serif' font-size='34' font-weight='700' fill='%23c6a15b' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+<style id="page-style">
+  @page { size: auto; margin: 0; }
+</style>
+<style>
+  :root{
+    --navy:#0d1321;
+    --navy-2:#161f36;
+    --navy-3:#202c4d;
+    --paper:#f4f2ee;
+    --card:#ffffff;
+    --ink:#1b2233;
+    --muted:#8891a3;
+    --crimson:#c81e3a;
+    --crimson-dark:#a41730;
+    --gold:#c6a15b;
+    --line:#e2e0d8;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family:'Tajawal', Tahoma, Arial, sans-serif;
+    direction:rtl;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(900px 500px at 100% -8%, rgba(198,161,91,0.09), transparent 60%),
+      radial-gradient(700px 420px at -8% 108%, rgba(13,19,33,0.05), transparent 60%),
+      repeating-linear-gradient(115deg, rgba(13,19,33,0.02) 0 2px, transparent 2px 60px),
+      var(--paper);
+    background-attachment: fixed, fixed, fixed, fixed;
+  }
+  ::selection{ background:var(--crimson); color:#fff; }
+
+  /* ===== Header / brand ===== */
+  header.brand{
+    background:
+      radial-gradient(1200px 260px at 12% -30%, rgba(198,161,91,0.16), transparent 60%),
+      linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 55%, var(--navy) 100%);
+    position:relative;
+    overflow:hidden;
+    padding:34px 20px 26px;
+    text-align:center;
+  }
+  header.brand::before{
+    /* subtle speed-stripe motif, restrained */
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 46px);
+    pointer-events:none;
+  }
+  .wordmark{
+    position:relative;
+    font-family:'Oswald', 'Tajawal', sans-serif;
+    font-weight:600;
+    font-size:clamp(26px, 5.2vw, 42px);
+    letter-spacing:6px;
+    color:#fdfdfb;
+    margin:0;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .wordmark span{ color:var(--gold); }
+  .hairline{
+    position:relative;
+    width:120px; height:2px; margin:14px auto 12px;
+    background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .tagline{
+    position:relative;
+    font-family:'Oswald', sans-serif;
+    font-weight:400;
+    letter-spacing:4px;
+    font-size:12.5px;
+    color:#c7cddb;
+    text-transform:uppercase;
+    margin:0;
+  }
+
+  /* ===== Toolbar (search + breadcrumb) ===== */
+  .toolbar{
+    background:var(--card);
+    border-bottom:1px solid var(--line);
+    padding:14px 22px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+    position:sticky; top:0; z-index:20;
+  }
+  .crumbs{
+    display:flex; align-items:center; gap:8px;
+    font-size:13.5px; color:var(--muted); white-space:nowrap;
+  }
+  .home-btn{
+    width:38px; height:38px; border-radius:10px; border:1.5px solid var(--line);
+    background:#fff; font-size:17px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, background .15s;
+  }
+  .home-btn:hover{ border-color:var(--gold); background:#fdf8ec; }
+  .crumbs b{ color:var(--ink); font-weight:700; }
+  .crumb-btn{
+    background:none; border:none; color:var(--crimson); font-weight:700;
+    font-family:inherit; font-size:13.5px; cursor:pointer; padding:0;
+  }
+  .search-wrap{ position:relative; flex:1; min-width:220px; max-width:420px; }
+  .search-wrap input{
+    width:100%;
+    padding:10px 40px 10px 14px;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:#fbfbf9;
+    font-family:inherit; font-size:14px; color:var(--ink);
+  }
+  .search-wrap input:focus{ outline:none; border-color:var(--gold); }
+  .search-icon{
+    position:absolute; right:13px; top:50%; transform:translateY(-50%);
+    font-size:15px; color:var(--muted); pointer-events:none;
+  }
+  .search-results{
+    position:absolute; top:calc(100% + 6px); right:0; left:0;
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 12px 30px rgba(13,19,33,0.18);
+    max-height:340px; overflow-y:auto; z-index:30; display:none;
+  }
+  .search-results.show{ display:block; }
+  .sr-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0efe9;
+  }
+  .sr-item:last-child{ border-bottom:none; }
+  .sr-item:hover{ background:#faf7f0; }
+  .sr-icon{ font-size:18px; }
+  .sr-text{ display:flex; flex-direction:column; gap:1px; }
+  .sr-file{ font-size:11px; color:var(--muted); }
+  .sr-sheet{ font-size:14px; font-weight:700; color:var(--ink); }
+  .sr-empty{ padding:16px; text-align:center; color:var(--muted); font-size:13px; }
+  .sr-sheet b{ color:var(--crimson); }
+
+  /* ===== Main area ===== */
+  main{ padding:26px 22px 60px; max-width:1180px; margin:0 auto; }
+  .section-title{
+    font-family:'Oswald', sans-serif;
+    font-size:13px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--muted); margin:2px 2px 16px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));
+    gap:16px;
+  }
+
+  /* file (category) cards */
+  .file-card{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px 14px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .file-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 14px 30px rgba(13,19,33,0.12);
+    border-color:var(--gold);
+  }
+  .file-card .icon{ font-size:40px; line-height:1; margin-bottom:10px; }
+  .file-card .name{ font-weight:700; font-size:14.5px; color:var(--ink); }
+  .file-card .count{ font-size:11.5px; color:var(--muted); margin-top:4px; }
+  .card-del{
+    position:absolute; top:8px; left:8px;
+    width:26px; height:26px; border-radius:50%;
+    background:#fff; border:1px solid var(--line);
+    color:var(--muted); font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; opacity:0; transition:opacity .15s, color .15s, border-color .15s;
+  }
+  .file-card:hover .card-del, .sheet-card:hover .card-del{ opacity:1; }
+  .card-del:hover{ color:#fff; background:var(--crimson); border-color:var(--crimson); }
+  .card-edit{
+    position:absolute; top:8px; right:8px;
+    width:26px; height:26px; border-radius:50%;
+    background:#fff; border:1px solid var(--line);
+    color:var(--muted); font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; opacity:0; transition:opacity .15s, color .15s, border-color .15s;
+  }
+  .file-card:hover .card-edit, .sheet-card:hover .card-edit{ opacity:1; }
+  .card-edit:hover{ color:#fff; background:var(--gold); border-color:var(--gold); }
+
+  /* sheet (form) cards */
+  .sheet-card{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    display:flex; flex-direction:column;
+  }
+  .sheet-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 14px 30px rgba(13,19,33,0.12);
+    border-color:var(--gold);
+  }
+  .sheet-thumb{
+    height:120px; background:#f2f0ea;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .sheet-thumb img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .sheet-thumb .ph{ font-size:34px; color:#c7c2b4; }
+  .sheet-name{ padding:10px 12px 12px; font-size:13.5px; font-weight:700; text-align:center; color:var(--ink); }
+
+  /* add-tile */
+  .add-tile{
+    border:1.6px dashed #cfd4de;
+    background:transparent;
+    border-radius:16px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:6px; min-height:150px; cursor:pointer; color:var(--muted);
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  .add-tile:hover{ border-color:var(--crimson); color:var(--crimson); background:#fff7f7; }
+  .add-tile .plus{ font-size:26px; font-weight:700; }
+  .add-tile .lbl{ font-size:12.5px; font-weight:700; }
+
+  /* ===== Preview / print stage ===== */
+  .preview-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    flex-wrap:wrap; margin-bottom:16px;
+  }
+  .meta{
+    font-size:12.5px; color:#556077; background:#fff;
+    border:1px solid var(--line);
+    padding:8px 14px; border-radius:10px;
+    display:flex; gap:16px; flex-wrap:wrap;
+  }
+  .meta b{ color:var(--ink); }
+  .btn{
+    padding:11px 24px; border-radius:10px; border:none;
+    background:var(--crimson); color:#fff; font-size:14.5px; font-weight:700;
+    cursor:pointer; display:flex; align-items:center; gap:8px;
+    font-family:inherit;
+  }
+  .btn:hover{ background:var(--crimson-dark); }
+  .btn.ghost{
+    background:#fff; color:var(--ink); border:1.5px solid var(--line);
+  }
+  .btn.ghost:hover{ border-color:var(--crimson); color:var(--crimson); background:#fff; }
+  .btn.gold{ background:var(--gold); color:#2a2410; }
+  .btn.gold:hover{ background:#b58f47; }
+
+  .stage{ padding:8px 0 30px; display:flex; justify-content:center; }
+  .sheet-wrap{
+    background:#fff;
+    box-shadow:0 8px 34px rgba(13,19,33,0.18);
+    border:1px solid var(--line);
+  }
+  .sheet-wrap img{ display:block; width:100%; height:100%; }
+  .xlsx-table-outer{ width:100%; height:100%; overflow:auto; padding:10mm; }
+  .xlsx-table-outer table{
+    width:100%; border-collapse:collapse; font-family:'Tajawal', Tahoma, sans-serif; font-size:12px;
+  }
+  .xlsx-table-outer td, .xlsx-table-outer th{
+    border:1px solid #444; padding:4px 6px; text-align:right;
+  }
+  .letterhead{
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:2.5px solid var(--navy); padding-bottom:8px; margin-bottom:10px;
+  }
+  .letterhead .lh-brand{ font-family:'Oswald',sans-serif; letter-spacing:2px; font-weight:700; color:var(--navy); font-size:15px; }
+  .letterhead .lh-title{ font-weight:900; font-size:14px; }
+  .letterhead .lh-date{ font-size:11px; color:#556077; }
+
+  /* ===== Modals ===== */
+  .overlay{
+    position:fixed; inset:0; background:rgba(13,19,33,0.55);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:16px;
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    background:#fff; border-radius:16px; width:100%; max-width:460px;
+    max-height:88vh; overflow-y:auto;
+    box-shadow:0 30px 70px rgba(0,0,0,0.35);
+  }
+  .modal-head{
+    padding:18px 22px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .modal-head h3{ margin:0; font-size:16px; }
+  .modal-close{ background:none; border:none; font-size:20px; cursor:pointer; color:var(--muted); }
+  .modal-body{ padding:20px 22px; display:flex; flex-direction:column; gap:14px; }
+  .modal-foot{ padding:16px 22px 22px; display:flex; gap:10px; justify-content:flex-end; }
+  label.f-label{ font-size:12.5px; font-weight:700; color:#45536b; }
+  input[type=text].f-input, input[type=file].f-input{
+    width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid var(--line);
+    font-family:inherit; font-size:14px;
+  }
+  input[type=text].f-input:focus{ outline:none; border-color:var(--gold); }
+  .icon-pick{ display:flex; flex-wrap:wrap; gap:8px; }
+  .icon-pick button{
+    width:42px; height:42px; border-radius:10px; border:1.5px solid var(--line);
+    background:#fff; font-size:19px; cursor:pointer;
+  }
+  .icon-pick button.sel{ border-color:var(--crimson); background:#fff2f3; }
+  .tabs{ display:flex; gap:8px; }
+  .tab-btn{
+    flex:1; padding:9px; border-radius:9px; border:1.5px solid var(--line);
+    background:#fff; cursor:pointer; font-family:inherit; font-weight:700; font-size:13px; color:var(--muted);
+  }
+  .tab-btn.active{ border-color:var(--crimson); color:var(--crimson); background:#fff2f3; }
+  .tab-pane{ display:none; flex-direction:column; gap:12px; }
+  .tab-pane.active{ display:flex; }
+  .orient-pick{ display:flex; gap:8px; }
+  .orient-pick button{
+    flex:1; padding:10px; border-radius:9px; border:1.5px solid var(--line);
+    background:#fff; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700; color:var(--muted);
+  }
+  .orient-pick button.sel{ border-color:var(--gold); color:#8a6d1f; background:#fdf8ec; }
+  .hint{ font-size:11.5px; color:var(--muted); }
+  .xlsx-preview{ max-height:150px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px; }
+  .xlsx-preview table{ border-collapse:collapse; font-size:10px; width:100%; }
+  .xlsx-preview td, .xlsx-preview th{ border:1px solid #ddd; padding:2px 4px; }
+  .img-preview{ max-height:150px; text-align:center; }
+  .img-preview img{ max-height:150px; max-width:100%; border-radius:6px; border:1px solid var(--line); }
+
+  .empty-note{
+    text-align:center; color:var(--muted); font-size:14px; padding:50px 20px;
+  }
+
+  /* ===== Print rules ===== */
+  @media print {
+    header.brand, .toolbar, .preview-bar, .empty-note, .overlay, main > .grid, .section-title { display:none !important; }
+    body{ background:#fff; }
+    .stage{ padding:0; display:block; }
+    .sheet-wrap{
+      box-shadow:none; border:none;
+      width:100% !important; height:100% !important; margin:0;
+    }
+    .sheet-wrap img{ width:100%; height:100%; object-fit:fill; }
+    .xlsx-table-outer{ overflow:hidden; }
+  }
+</style>
+</head>
+<body>
+
+<header class="brand">
+  <h1 class="wordmark" onclick="goHome()">MILANO <span>SPORT SHOES</span></h1>
+  <div class="hairline"></div>
+  <p class="tagline">Print Documents</p>
+</header>
+
+<div class="toolbar no-print">
+  <button class="home-btn" onclick="goHome()" title="الرئيسية">🏠</button>
+  <div class="crumbs" id="crumbs"></div>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="ابحث عن نموذج...">
+    <span class="search-icon">🔎</span>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<main id="mainArea"></main>
+
+<!-- Add File Modal -->
+<div class="overlay" id="addFileOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>إنشاء ملف جديد</h3>
+      <button class="modal-close" onclick="closeModal('addFileOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="f-label">اسم الملف</label>
+        <input type="text" class="f-input" id="newFileName" placeholder="مثال: الادارة">
+      </div>
+      <div>
+        <label class="f-label">اختر أيقونة</label>
+        <div class="icon-pick" id="iconPick"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeModal('addFileOverlay')">إلغاء</button>
+      <button class="btn" onclick="submitNewFile()">إنشاء الملف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Sheet Modal -->
+<div class="overlay" id="addSheetOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>إضافة نموذج</h3>
+      <button class="modal-close" onclick="closeModal('addSheetOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="f-label">اسم النموذج</label>
+        <input type="text" class="f-input" id="newSheetName" placeholder="مثال: تقرير الجودة">
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" id="tabExcelBtn" onclick="switchAddTab('excel')">📊 استيراد من إكسل</button>
+        <button class="tab-btn" id="tabImageBtn" onclick="switchAddTab('image')">🖼️ رفع صورة</button>
+      </div>
+
+      <div class="tab-pane active" id="tabExcel">
+        <input type="file" class="f-input" id="excelFile" accept=".xlsx,.xls">
+        <div class="hint">هيتم تحويل أول شيت في الملف لصفحة طباعة جاهزة.</div>
+        <div id="excelPreviewWrap" style="display:none;">
+          <div class="xlsx-preview" id="excelPreview"></div>
+          <label class="f-label" style="margin-top:10px;display:block;">اتجاه الصفحة</label>
+          <div class="orient-pick">
+            <button type="button" id="excelPortraitBtn" class="sel" onclick="setExcelOrientation('portrait')">📄 طولي</button>
+            <button type="button" id="excelLandscapeBtn" onclick="setExcelOrientation('landscape')">📃 عرضي</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tabImage">
+        <input type="file" class="f-input" id="imageFile" accept="image/*">
+        <div class="hint">هيتم أخذ مقاس الصورة الأصلي تلقائيًا عشان الطباعة تطلع مضبوطة.</div>
+        <div class="img-preview" id="imagePreviewWrap" style="display:none;">
+          <img id="imagePreviewImg">
+          <div><button type="button" class="btn ghost" style="margin-top:8px;" onclick="openCropperForAdd()">✂️ قص الصورة</button></div>
+        </div>
+        <div id="imageOrientWrap" style="display:none;">
+          <label class="f-label" style="margin-top:10px;display:block;">اتجاه الصفحة</label>
+          <div class="orient-pick">
+            <button type="button" id="imgPortraitBtn" onclick="setImageOrientation('portrait')">📄 طولي</button>
+            <button type="button" id="imgLandscapeBtn" onclick="setImageOrientation('landscape')">📃 عرضي</button>
+          </div>
+          <div class="hint">اتحدد أوتوماتيك من مقاس الصورة، وتقدر تغيّره لو حابب.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeModal('addSheetOverlay')">إلغاء</button>
+      <button class="btn" id="submitSheetBtn" disabled onclick="submitNewSheet()">إضافة النموذج</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-head">
+      <h3 id="confirmTitle">تأكيد الحذف</h3>
+      <button class="modal-close" onclick="closeModal('confirmOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMsg" style="margin:0;font-size:14px;color:#45536b;"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeModal('confirmOverlay')">إلغاء</button>
+      <button class="btn" id="confirmYesBtn" style="background:var(--crimson);">حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Sheet Modal -->
+<div class="overlay" id="editSheetOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>تعديل النموذج</h3>
+      <button class="modal-close" onclick="closeModal('editSheetOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="f-label">اسم النموذج</label>
+        <input type="text" class="f-input" id="editSheetName">
+      </div>
+      <div id="editSheetImageBlock" style="display:none;">
+        <label class="f-label">الصورة</label>
+        <div class="img-preview"><img id="editSheetImagePreview"></div>
+        <button type="button" class="btn ghost" style="margin-top:8px;" onclick="openCropperForEdit()">✂️ قص / تعديل الصورة</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeModal('editSheetOverlay')">إلغاء</button>
+      <button class="btn" onclick="submitEditSheet()">حفظ التعديل</button>
+    </div>
+  </div>
+</div>
+
+<!-- Crop Modal -->
+<div class="overlay" id="cropOverlay">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-head">
+      <h3>قص الصورة</h3>
+      <button class="modal-close" onclick="cancelCrop()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="max-height:56vh;overflow:hidden;background:#0d1321;border-radius:10px;">
+        <img id="cropImageEl" style="display:block;max-width:100%;">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="resetCrop()">↺ استعادة</button>
+      <button class="btn ghost" onclick="cancelCrop()">إلغاء</button>
+      <button class="btn gold" onclick="applyCrop()">✓ تطبيق القص</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   BASE MANIFEST — original factory forms (never mutated)
+   ============================================================ */
+const BASE_MANIFEST = {"ادارة": [{"sheet": "جزاءات", "img": "assets/f0_0.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "حوافز", "img": "assets/f0_1.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "خروج صيدلية", "img": "assets/f0_2.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "خروج الساعة 6 ", "img": "assets/f0_3.png", "width_mm": 279.4, "height_mm": 215.9, "orientation": "landscape"}, {"sheet": "اذن صرف مكوك", "img": "assets/f0_4.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "تعديل راتب ", "img": "assets/f0_5.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "طلب نقل", "img": "assets/f0_6.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "تعديل  مسمي ", "img": "assets/f0_7.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "استمارة تعيين", "img": "assets/f0_8.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}], "اكليرك": [{"sheet": "عينات تصميم (مصطفي)", "img": "assets/f1_0.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "اصلاحات صالة", "img": "assets/f1_1.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "Sheet6", "img": "assets/f1_2.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "راقات جديده", "img": "assets/f1_3.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "عينات تصميم جديدة", "img": "assets/f1_4.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "Sheet1", "img": "assets/f1_5.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "عينات تصميم", "img": "assets/f1_6.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "تغيير راقات", "img": "assets/f1_7.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "تسليم واصلاحات", "img": "assets/f1_8.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "Sheet2", "img": "assets/f1_9.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "Sheet3", "img": "assets/f1_10.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "Sheet4", "img": "assets/f1_11.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}], "جودة": [{"sheet": "المشاكل اليومية للجودة", "img": "assets/f2_0.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "تقرير الاخطاء اليومي", "img": "assets/f2_1.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "بيان اكياس", "img": "assets/f2_2.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "الانتاج اليومي 2", "img": "assets/f2_3.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "تقرير اخطاء", "img": "assets/f2_4.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "الانتاج اليومي", "img": "assets/f2_5.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "انتاج", "img": "assets/f2_6.png", "width_mm": 279.4, "height_mm": 215.9, "orientation": "landscape"}, {"sheet": "تسليم", "img": "assets/f2_7.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "التقرير الاسبوعي", "img": "assets/f2_8.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "انتاج صالة", "img": "assets/f2_9.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "اصلاحات", "img": "assets/f2_10.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "استلام عهدة", "img": "assets/f2_11.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "بيان عهدة 2", "img": "assets/f2_12.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "اختبار  للجودة", "img": "assets/f2_13.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "مهام مشرف الجودة ", "img": "assets/f2_14.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "تسليم اقسام", "img": "assets/f2_15.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "الكايزن", "img": "assets/f2_16.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "اصلاحات السرفلة فوندي", "img": "assets/f2_17.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "جودة فاضل", "img": "assets/f2_18.png", "width_mm": 279.4, "height_mm": 215.9, "orientation": "landscape"}, {"sheet": "التشغيل اليومي", "img": "assets/f2_19.png", "width_mm": 279.4, "height_mm": 215.9, "orientation": "landscape"}, {"sheet": "جرد أخطاء الجودة", "img": "assets/f2_20.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "اصلاحات السرفلة لسان", "img": "assets/f2_21.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "اخطاء الشهر", "img": "assets/f2_22.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "تسليم الخطوط اليومي", "img": "assets/f2_23.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "اجمالي الصالات", "img": "assets/f2_24.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}], "فنيين": [{"sheet": "ترتيب خط", "img": "assets/f3_0.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "هوالك بالساعة", "img": "assets/f3_1.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "اصلاحات (2)", "img": "assets/f3_2.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "Sheet1", "img": "assets/f3_3.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "22", "img": "assets/f3_4.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "هوالك الكيس", "img": "assets/f3_5.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "تقييم للفني", "img": "assets/f3_6.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "قوة الصالة", "img": "assets/f3_7.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "قوة الجودة", "img": "assets/f3_8.png", "width_mm": 279.4, "height_mm": 215.9, "orientation": "landscape"}, {"sheet": "قوة الكنترول", "img": "assets/f3_9.png", "width_mm": 279.4, "height_mm": 215.9, "orientation": "landscape"}, {"sheet": "تعينات", "img": "assets/f3_10.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "Sheet4", "img": "assets/f3_11.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "Sheet3", "img": "assets/f3_12.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "تنزيل الفيلم", "img": "assets/f3_13.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "الموديل", "img": "assets/f3_14.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "وصف وظيفي", "img": "assets/f3_15.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "مهام مشرف الخط", "img": "assets/f3_16.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "مهام مشرف الخط (2)", "img": "assets/f3_17.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}], "كنترول": [{"sheet": "بيان هالك", "img": "assets/f4_0.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "فرق هالك", "img": "assets/f4_1.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "بيان كنترول", "img": "assets/f4_2.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "درجات ارتكل", "img": "assets/f4_3.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "عيوب ارتكل", "img": "assets/f4_4.png", "width_mm": 297.0, "height_mm": 210.0, "orientation": "landscape"}, {"sheet": "أكواد الخيط", "img": "assets/f4_5.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}], "متابعة": [{"sheet": "الانصراف", "img": "assets/f5_0.png", "width_mm": 279.4, "height_mm": 215.9, "orientation": "landscape"}, {"sheet": "انتاج السهر", "img": "assets/f5_1.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "متابعة انتاج", "img": "assets/f5_2.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "هوالك الساعة", "img": "assets/f5_3.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "تقييم يومي", "img": "assets/f5_4.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "جرد الساعة", "img": "assets/f5_5.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "اعطال صالة", "img": "assets/f5_6.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "متابعة للصيانة", "img": "assets/f5_7.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "تشغيل", "img": "assets/f5_8.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "استراحة", "img": "assets/f5_9.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}, {"sheet": "شغل ارض و الخط", "img": "assets/f5_10.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "تحقيق", "img": "assets/f5_11.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "التارجت اليومي", "img": "assets/f5_12.png", "width_mm": 215.9, "height_mm": 279.4, "orientation": "portrait"}, {"sheet": "التسليمات", "img": "assets/f5_13.png", "width_mm": 210.0, "height_mm": 297.0, "orientation": "portrait"}]};
+
+const FILE_ICONS = {
+  "ادارة": "🏢", "اكليرك": "🧾", "جودة": "✅", "فنيين": "🔧", "كنترول": "🎯", "متابعة": "📋"
+};
+const ICON_CHOICES = ["📁","🏢","🧾","✅","🔧","🎯","📋","🧵","📦","🖨️","🧷","📐"];
+
+/* ============================================================
+   Persistent state (localStorage)
+   ============================================================ */
+// Shared state lives on the server now (Vercel KV), not in this browser's
+// localStorage — so edits/uploads from any device are visible on every
+// other device. See /api/state.js.
+let deletedFiles = new Set();   // { key: {label, icon} }
+let deletedSheets = new Set();
+let customFiles = {};     // { key: {label, icon} }
+let customSheets = {};    // { key: [ {id, sheet, type, ...} ] }
+let fileOverrides = {};   // { baseKey: {label, icon} }
+let sheetOverrides = {};  // { baseSheetId: {sheet, img, width_mm, height_mm, orientation} }
+let stateReady = false;
+
+function applyRemoteState(data){
+  deletedFiles = new Set(data.deletedFiles || []);
+  deletedSheets = new Set(data.deletedSheets || []);
+  customFiles = data.customFiles || {};
+  customSheets = data.customSheets || {};
+  fileOverrides = data.fileOverrides || {};
+  sheetOverrides = data.sheetOverrides || {};
+}
+function snapshotState(){
+  return {
+    deletedFiles: [...deletedFiles],
+    deletedSheets: [...deletedSheets],
+    customFiles, customSheets, fileOverrides, sheetOverrides
+  };
+}
+
+async function loadStateFromServer(){
+  const res = await fetch('/api/state');
+  if (!res.ok) throw new Error('bad status ' + res.status);
+  applyRemoteState(await res.json());
+  stateReady = true;
+}
+
+let saving = false, pendingSave = false;
+async function persist(){
+  if (saving){ pendingSave = true; return; }
+  saving = true;
+  try {
+    await fetch('/api/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(snapshotState())
+    });
+  } catch(e){
+    console.error(e);
+    alert('تعذر حفظ التعديل على السيرفر. تأكد من اتصال الإنترنت وحاول تاني.');
+  } finally {
+    saving = false;
+    if (pendingSave){ pendingSave = false; persist(); }
+  }
+}
+
+// Poll every 15s so changes made on other devices show up here too.
+setInterval(async () => {
+  try {
+    const res = await fetch('/api/state');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (JSON.stringify(data) !== JSON.stringify(snapshotState())){
+      applyRemoteState(data);
+      render();
+    }
+  } catch(e){ /* ignore transient network errors */ }
+}, 15000);
+
+function getFileList(){
+  const base = Object.keys(BASE_MANIFEST)
+    .filter(k => !deletedFiles.has(k))
+    .map(k => {
+      const ov = fileOverrides[k] || {};
+      return { key:k, label: ov.label || k, icon: ov.icon || FILE_ICONS[k] || "📁", isBase:true };
+    });
+  const custom = Object.keys(customFiles)
+    .map(k => ({ key:k, label: customFiles[k].label, icon: customFiles[k].icon || "📁", isBase:false }));
+  return base.concat(custom);
+}
+function getSheetList(fileKey){
+  const base = (BASE_MANIFEST[fileKey] || [])
+    .map((item, idx) => {
+      const id = 'b|'+fileKey+'|'+idx;
+      const ov = sheetOverrides[id] || {};
+      return { ...item, ...ov, id, type:'image', isBase:true };
+    })
+    .filter(s => !deletedSheets.has(s.id));
+  const custom = (customSheets[fileKey] || []).map(s => ({ ...s, isBase:false }));
+  return base.concat(custom);
+}
+function getAllSheetsFlat(){
+  const out = [];
+  getFileList().forEach(f => {
+    getSheetList(f.key).forEach(s => out.push({ file:f, sheet:s }));
+  });
+  return out;
+}
+function deleteFile(fileKey, isBase){
+  if (isBase) deletedFiles.add(fileKey);
+  else { delete customFiles[fileKey]; delete customSheets[fileKey]; }
+  persist();
+}
+function deleteSheet(fileKey, sheet){
+  if (sheet.isBase) deletedSheets.add(sheet.id);
+  else {
+    customSheets[fileKey] = (customSheets[fileKey] || []).filter(s => s.id !== sheet.id);
+  }
+  persist();
+}
+function addFile(label, icon){
+  const key = 'cf_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  customFiles[key] = { label, icon };
+  persist();
+  return key;
+}
+function addSheet(fileKey, sheetObj){
+  sheetObj.id = 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  customSheets[fileKey] = customSheets[fileKey] || [];
+  customSheets[fileKey].push(sheetObj);
+  persist();
+  return sheetObj;
+}
+
+/* ============================================================
+   Navigation state + rendering
+   ============================================================ */
+let state = { view:'home', fileKey:null };
+
+function renderCrumbs(){
+  const el = document.getElementById('crumbs');
+  if (state.view === 'home'){
+    el.innerHTML = '<b>الرئيسية</b>';
+  } else if (state.view === 'file'){
+    const f = getFileList().find(x => x.key === state.fileKey);
+    el.innerHTML = '<button class="crumb-btn" onclick="goHome()">الرئيسية</button><span>›</span><b>' + escapeHtml(f ? f.label : '') + '</b>';
+  } else if (state.view === 'preview'){
+    const f = getFileList().find(x => x.key === state.fileKey);
+    el.innerHTML = '<button class="crumb-btn" onclick="goHome()">الرئيسية</button><span>›</span>' +
+      '<button class="crumb-btn" onclick="openFile(\''+state.fileKey+'\')">' + escapeHtml(f ? f.label : '') + '</button><span>›</span><b>' + escapeHtml(state.sheetName || '') + '</b>';
+  }
+}
+function escapeHtml(s){
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function goHome(){ state = { view:'home', fileKey:null }; render(); }
+function openFile(fileKey){ state = { view:'file', fileKey }; render(); }
+
+function render(){
+  renderCrumbs();
+  const main = document.getElementById('mainArea');
+  if (state.view === 'home') { main.innerHTML = renderHome(); }
+  else if (state.view === 'file') { main.innerHTML = renderFile(state.fileKey); }
+  else if (state.view === 'preview') { main.innerHTML = renderPreviewShell(); afterPreviewRender(); }
+}
+
+function renderHome(){
+  const files = getFileList();
+  let cards = files.map(f => {
+    const count = getSheetList(f.key).length;
+    return `<div class="file-card" onclick="openFile('${f.key}')">
+      <div class="card-del" onclick="event.stopPropagation(); askDeleteFile('${f.key}', ${f.isBase})" title="حذف الملف">🗑️</div>
+      <div class="card-edit" onclick="event.stopPropagation(); openEditFileModal('${f.key}', ${f.isBase})" title="تعديل الملف">✏️</div>
+      <div class="icon">${f.icon}</div>
+      <div class="name">${escapeHtml(f.label)}</div>
+      <div class="count">${count} نموذج</div>
+    </div>`;
+  }).join('');
+  cards += `<div class="add-tile" onclick="openAddFileModal()">
+      <div class="plus">＋</div><div class="lbl">ملف جديد</div>
+    </div>`;
+  return `<div class="section-title">الملفات</div><div class="grid">${cards}</div>`;
+}
+
+function renderFile(fileKey){
+  const f = getFileList().find(x => x.key === fileKey);
+  if (!f) return '<div class="empty-note">الملف مش موجود</div>';
+  const sheets = getSheetList(fileKey);
+  let cards = sheets.map(s => {
+    const thumb = s.type === 'image'
+      ? `<img src="${s.img}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'🖼️'}))">`
+      : `<div class="ph">📊</div>`;
+    return `<div class="sheet-card" onclick="openPreview('${fileKey}','${s.id}')">
+      <div class="card-del" onclick="event.stopPropagation(); askDeleteSheet('${fileKey}','${s.id}')" title="حذف النموذج">🗑️</div>
+      <div class="card-edit" onclick="event.stopPropagation(); openEditSheetModal('${fileKey}','${s.id}')" title="تعديل النموذج">✏️</div>
+      <div class="sheet-thumb">${thumb}</div>
+      <div class="sheet-name">${escapeHtml(s.sheet)}</div>
+    </div>`;
+  }).join('');
+  cards += `<div class="add-tile" onclick="openAddSheetModal('${fileKey}')">
+      <div class="plus">＋</div><div class="lbl">إضافة نموذج</div>
+    </div>`;
+  return `<div class="section-title">${escapeHtml(f.icon)} ${escapeHtml(f.label)}</div><div class="grid">${cards}</div>`;
+}
+
+function openPreview(fileKey, sheetId){
+  const sheets = getSheetList(fileKey);
+  const sheet = sheets.find(s => s.id === sheetId);
+  if (!sheet) return;
+  state = { view:'preview', fileKey, sheetId, sheetName: sheet.sheet };
+  render();
+}
+
+function renderPreviewShell(){
+  return `
+    <div class="preview-bar">
+      <button class="btn ghost" onclick="openFile('${state.fileKey}')">→ رجوع للملف</button>
+      <div class="meta" id="metaInfo"></div>
+      <button class="btn" id="printBtn" onclick="printForm()">🖨️ طباعة</button>
+    </div>
+    <div class="stage">
+      <div id="sheetWrap" class="sheet-wrap"></div>
+    </div>`;
+}
+
+function afterPreviewRender(){
+  const sheets = getSheetList(state.fileKey);
+  const item = sheets.find(s => s.id === state.sheetId);
+  if (!item) return;
+  showForm(item);
+}
+
+/* ============================================================
+   Preview sizing + print
+   ============================================================ */
+function showForm(item){
+  const sheetWrap = document.getElementById('sheetWrap');
+  const metaInfo = document.getElementById('metaInfo');
+
+  if (item.type === 'image'){
+    sheetWrap.innerHTML = `<img src="${item.img}" alt="" onerror="handleImgError()">`;
+  } else {
+    sheetWrap.innerHTML = `<div class="xlsx-table-outer">
+        <div class="letterhead">
+          <div class="lh-brand">MILANO SPORT SHOES</div>
+          <div class="lh-title">${escapeHtml(item.sheet)}</div>
+          <div class="lh-date">التاريخ: ______</div>
+        </div>
+        ${item.table}
+      </div>`;
+  }
+
+  const maxW = Math.min(window.innerWidth * 0.85, 900);
+  const maxH = window.innerHeight * 0.62;
+  const mmToPx = 96 / 25.4;
+  let wPx = item.width_mm * mmToPx;
+  let hPx = item.height_mm * mmToPx;
+  const scale = Math.min(maxW / wPx, maxH / hPx, 1);
+  sheetWrap.style.width = (wPx * scale) + 'px';
+  sheetWrap.style.height = (hPx * scale) + 'px';
+
+  metaInfo.innerHTML =
+    '<span><b>النموذج:</b> ' + escapeHtml(item.sheet) + '</span>' +
+    '<span><b>المقاس:</b> ' + Math.round(item.width_mm) + ' × ' + Math.round(item.height_mm) + ' مم</span>' +
+    '<span><b>الاتجاه:</b> ' + (item.orientation === 'landscape' ? 'عرضي' : 'طولي') + '</span>';
+
+  sheetWrap.dataset.wmm = item.width_mm;
+  sheetWrap.dataset.hmm = item.height_mm;
+}
+
+function handleImgError(){
+  const sheetWrap = document.getElementById('sheetWrap');
+  sheetWrap.innerHTML = '<div class="empty-note">🖼️ الصورة غير متاحة</div>';
+}
+
+function printForm(){
+  const sheetWrap = document.getElementById('sheetWrap');
+  const wmm = sheetWrap.dataset.wmm;
+  const hmm = sheetWrap.dataset.hmm;
+  const pageStyle = document.getElementById('page-style');
+  pageStyle.textContent = '@page { size: ' + wmm + 'mm ' + hmm + 'mm; margin: 0; }';
+  sheetWrap.style.width = wmm + 'mm';
+  sheetWrap.style.height = hmm + 'mm';
+  setTimeout(() => { window.print(); }, 50);
+}
+window.addEventListener('afterprint', () => {
+  if (state.view === 'preview') afterPreviewRender();
+});
+
+/* ============================================================
+   Search
+   ============================================================ */
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  if (!q){ searchResults.classList.remove('show'); return; }
+  const all = getAllSheetsFlat();
+  const matches = all.filter(x => x.sheet.sheet.toLowerCase().includes(q.toLowerCase()) || x.file.label.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
+  if (!matches.length){
+    searchResults.innerHTML = '<div class="sr-empty">مفيش نتائج لـ "' + escapeHtml(q) + '"</div>';
+  } else {
+    searchResults.innerHTML = matches.map(m => {
+      const name = m.sheet.sheet;
+      const idx = name.toLowerCase().indexOf(q.toLowerCase());
+      let display = escapeHtml(name);
+      if (idx > -1){
+        display = escapeHtml(name.slice(0,idx)) + '<b>' + escapeHtml(name.slice(idx, idx+q.length)) + '</b>' + escapeHtml(name.slice(idx+q.length));
+      }
+      return `<div class="sr-item" onclick="jumpToSheet('${m.file.key}','${m.sheet.id}')">
+        <div class="sr-icon">${m.file.icon}</div>
+        <div class="sr-text"><div class="sr-file">${escapeHtml(m.file.label)}</div><div class="sr-sheet">${display}</div></div>
+      </div>`;
+    }).join('');
+  }
+  searchResults.classList.add('show');
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-wrap')) searchResults.classList.remove('show');
+});
+function jumpToSheet(fileKey, sheetId){
+  searchInput.value = '';
+  searchResults.classList.remove('show');
+  openPreview(fileKey, sheetId);
+}
+
+/* ============================================================
+   Modals — Add File
+   ============================================================ */
+let selectedIcon = ICON_CHOICES[0];
+let editFileTarget = null; // {key, isBase} when editing, null when adding
+function renderIconPick(sel){
+  const pick = document.getElementById('iconPick');
+  pick.innerHTML = ICON_CHOICES.map(ic => `<button type="button" class="${ic===sel?'sel':''}" onclick="pickIcon('${ic}', this)">${ic}</button>`).join('');
+}
+function openAddFileModal(){
+  editFileTarget = null;
+  document.querySelector('#addFileOverlay .modal-head h3').textContent = 'إنشاء ملف جديد';
+  document.querySelector('#addFileOverlay .modal-foot .btn:last-child').textContent = 'إنشاء الملف';
+  document.getElementById('newFileName').value = '';
+  selectedIcon = ICON_CHOICES[0];
+  renderIconPick(selectedIcon);
+  document.getElementById('addFileOverlay').classList.add('show');
+}
+function openEditFileModal(fileKey, isBase){
+  const f = getFileList().find(x => x.key === fileKey);
+  if (!f) return;
+  editFileTarget = { key: fileKey, isBase: isBase === true || isBase === 'true' };
+  document.querySelector('#addFileOverlay .modal-head h3').textContent = 'تعديل الملف';
+  document.querySelector('#addFileOverlay .modal-foot .btn:last-child').textContent = 'حفظ التعديل';
+  document.getElementById('newFileName').value = f.label;
+  selectedIcon = f.icon;
+  renderIconPick(selectedIcon);
+  document.getElementById('addFileOverlay').classList.add('show');
+}
+function pickIcon(ic, btn){
+  selectedIcon = ic;
+  document.querySelectorAll('#iconPick button').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function submitNewFile(){
+  const name = document.getElementById('newFileName').value.trim();
+  if (!name){ alert('من فضلك اكتب اسم الملف'); return; }
+  if (editFileTarget){
+    if (editFileTarget.isBase){ fileOverrides[editFileTarget.key] = { label:name, icon:selectedIcon }; persist(); }
+    else { customFiles[editFileTarget.key] = { label:name, icon:selectedIcon }; persist(); }
+    closeModal('addFileOverlay');
+    render();
+  } else {
+    const key = addFile(name, selectedIcon);
+    closeModal('addFileOverlay');
+    openFile(key);
+  }
+}
+
+/* ============================================================
+   Modals — Add Sheet (Excel / Image)
+   ============================================================ */
+let addSheetFileKey = null;
+let pendingExcelTable = null;
+let pendingExcelOrientation = 'portrait';
+let pendingImage = null; // {dataUrl, width_mm, height_mm, orientation}
+
+function openAddSheetModal(fileKey){
+  addSheetFileKey = fileKey;
+  document.getElementById('newSheetName').value = '';
+  document.getElementById('excelFile').value = '';
+  document.getElementById('imageFile').value = '';
+  document.getElementById('excelPreviewWrap').style.display = 'none';
+  document.getElementById('imagePreviewWrap').style.display = 'none';
+  document.getElementById('imageOrientWrap').style.display = 'none';
+  pendingExcelTable = null; pendingImage = null;
+  document.getElementById('submitSheetBtn').disabled = true;
+  switchAddTab('excel');
+  document.getElementById('addSheetOverlay').classList.add('show');
+}
+function switchAddTab(tab){
+  document.getElementById('tabExcelBtn').classList.toggle('active', tab === 'excel');
+  document.getElementById('tabImageBtn').classList.toggle('active', tab === 'image');
+  document.getElementById('tabExcel').classList.toggle('active', tab === 'excel');
+  document.getElementById('tabImage').classList.toggle('active', tab === 'image');
+  updateSubmitEnabled();
+}
+function setExcelOrientation(o){
+  pendingExcelOrientation = o;
+  document.getElementById('excelPortraitBtn').classList.toggle('sel', o === 'portrait');
+  document.getElementById('excelLandscapeBtn').classList.toggle('sel', o === 'landscape');
+}
+function setImageOrientation(o){
+  if (!pendingImage || pendingImage.orientation === o) { pendingImage && (pendingImage.orientation = o); }
+  else {
+    // swap dimensions so the printed page matches the chosen orientation
+    const w = pendingImage.width_mm, h = pendingImage.height_mm;
+    pendingImage.width_mm = h; pendingImage.height_mm = w;
+    pendingImage.orientation = o;
+  }
+  document.getElementById('imgPortraitBtn').classList.toggle('sel', o === 'portrait');
+  document.getElementById('imgLandscapeBtn').classList.toggle('sel', o === 'landscape');
+}
+function updateSubmitEnabled(){
+  const name = document.getElementById('newSheetName').value.trim();
+  const isExcelTab = document.getElementById('tabExcel').classList.contains('active');
+  const ok = name && ((isExcelTab && pendingExcelTable) || (!isExcelTab && pendingImage));
+  document.getElementById('submitSheetBtn').disabled = !ok;
+}
+document.getElementById('newSheetName').addEventListener('input', updateSubmitEnabled);
+
+document.getElementById('excelFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type:'array' });
+      const wsName = wb.SheetNames[0];
+      const ws = wb.Sheets[wsName];
+      const html = XLSX.utils.sheet_to_html(ws, { editable:false });
+      pendingExcelTable = html;
+      document.getElementById('excelPreview').innerHTML = html;
+      document.getElementById('excelPreviewWrap').style.display = 'block';
+      if (!document.getElementById('newSheetName').value.trim()){
+        document.getElementById('newSheetName').value = wsName;
+      }
+      updateSubmitEnabled();
+    } catch(err){
+      alert('تعذر قراءة ملف الإكسل. تأكد إنه بصيغة xlsx أو xls.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('imageFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const mmToPx = 96 / 25.4;
+      const width_mm = img.naturalWidth / mmToPx;
+      const height_mm = img.naturalHeight / mmToPx;
+      pendingImage = {
+        dataUrl: ev.target.result,
+        width_mm, height_mm,
+        orientation: width_mm > height_mm ? 'landscape' : 'portrait'
+      };
+      document.getElementById('imagePreviewImg').src = ev.target.result;
+      document.getElementById('imagePreviewWrap').style.display = 'block';
+      document.getElementById('imageOrientWrap').style.display = 'block';
+      document.getElementById('imgPortraitBtn').classList.toggle('sel', pendingImage.orientation === 'portrait');
+      document.getElementById('imgLandscapeBtn').classList.toggle('sel', pendingImage.orientation === 'landscape');
+      updateSubmitEnabled();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function openCropperForAdd(){
+  if (!pendingImage) return;
+  openCropper(pendingImage.dataUrl, (dataUrl, w, h) => {
+    const mmToPx = 96 / 25.4;
+    pendingImage.dataUrl = dataUrl;
+    pendingImage.width_mm = w / mmToPx;
+    pendingImage.height_mm = h / mmToPx;
+    pendingImage.orientation = pendingImage.width_mm > pendingImage.height_mm ? 'landscape' : 'portrait';
+    document.getElementById('imagePreviewImg').src = dataUrl;
+    document.getElementById('imgPortraitBtn').classList.toggle('sel', pendingImage.orientation === 'portrait');
+    document.getElementById('imgLandscapeBtn').classList.toggle('sel', pendingImage.orientation === 'landscape');
+  });
+}
+
+function submitNewSheet(){
+  const name = document.getElementById('newSheetName').value.trim();
+  if (!name) return;
+  const isExcelTab = document.getElementById('tabExcel').classList.contains('active');
+  let sheetObj;
+  if (isExcelTab && pendingExcelTable){
+    const wh = pendingExcelOrientation === 'landscape' ? { width_mm:297, height_mm:210 } : { width_mm:210, height_mm:297 };
+    sheetObj = { sheet:name, type:'table', table:pendingExcelTable, orientation:pendingExcelOrientation, ...wh };
+  } else if (!isExcelTab && pendingImage){
+    sheetObj = { sheet:name, type:'image', img:pendingImage.dataUrl, orientation:pendingImage.orientation, width_mm:pendingImage.width_mm, height_mm:pendingImage.height_mm };
+  } else { return; }
+  addSheet(addSheetFileKey, sheetObj);
+  closeModal('addSheetOverlay');
+  render();
+}
+
+/* ============================================================
+   Delete confirmations
+   ============================================================ */
+function askDeleteFile(fileKey, isBase){
+  const f = getFileList().find(x => x.key === fileKey);
+  document.getElementById('confirmTitle').textContent = 'حذف الملف';
+  document.getElementById('confirmMsg').textContent = 'هيتم حذف ملف "' + (f ? f.label : '') + '" وكل النماذج اللي جواه. متأكد؟';
+  document.getElementById('confirmOverlay').classList.add('show');
+  document.getElementById('confirmYesBtn').onclick = () => {
+    deleteFile(fileKey, isBase === true || isBase === 'true');
+    closeModal('confirmOverlay');
+    goHome();
+  };
+}
+function askDeleteSheet(fileKey, sheetId){
+  const sheets = getSheetList(fileKey);
+  const s = sheets.find(x => x.id === sheetId);
+  document.getElementById('confirmTitle').textContent = 'حذف النموذج';
+  document.getElementById('confirmMsg').textContent = 'هيتم حذف نموذج "' + (s ? s.sheet : '') + '". متأكد؟';
+  document.getElementById('confirmOverlay').classList.add('show');
+  document.getElementById('confirmYesBtn').onclick = () => {
+    deleteSheet(fileKey, s);
+    closeModal('confirmOverlay');
+    render();
+  };
+}
+
+/* ============================================================
+   Edit Sheet (rename + re-crop image)
+   ============================================================ */
+let editSheetTarget = null; // {fileKey, sheet}
+let editSheetPendingImg = null;
+
+function openEditSheetModal(fileKey, sheetId){
+  const sheets = getSheetList(fileKey);
+  const s = sheets.find(x => x.id === sheetId);
+  if (!s) return;
+  editSheetTarget = { fileKey, sheet:s };
+  editSheetPendingImg = null;
+  document.getElementById('editSheetName').value = s.sheet;
+  const block = document.getElementById('editSheetImageBlock');
+  if (s.type === 'image'){
+    block.style.display = 'block';
+    document.getElementById('editSheetImagePreview').src = s.img;
+  } else {
+    block.style.display = 'none';
+  }
+  document.getElementById('editSheetOverlay').classList.add('show');
+}
+function openCropperForEdit(){
+  if (!editSheetTarget) return;
+  const src = editSheetPendingImg || editSheetTarget.sheet.img;
+  openCropper(src, (dataUrl) => {
+    editSheetPendingImg = dataUrl;
+    document.getElementById('editSheetImagePreview').src = dataUrl;
+  });
+}
+function submitEditSheet(){
+  const name = document.getElementById('editSheetName').value.trim();
+  if (!name || !editSheetTarget) return;
+  const { fileKey, sheet } = editSheetTarget;
+
+  const finish = (extra) => {
+    if (sheet.isBase){
+      sheetOverrides[sheet.id] = { ...(sheetOverrides[sheet.id] || {}), sheet:name, ...extra };
+    } else {
+      const arr = customSheets[fileKey] || [];
+      const idx = arr.findIndex(x => x.id === sheet.id);
+      if (idx > -1) arr[idx] = { ...arr[idx], sheet:name, ...extra };
+    }
+    persist();
+    closeModal('editSheetOverlay');
+    render();
+  };
+
+  if (editSheetPendingImg){
+    const im = new Image();
+    im.onload = () => {
+      const mmToPx = 96 / 25.4;
+      const width_mm = im.naturalWidth / mmToPx;
+      const height_mm = im.naturalHeight / mmToPx;
+      finish({ img:editSheetPendingImg, width_mm, height_mm, orientation: width_mm > height_mm ? 'landscape' : 'portrait' });
+    };
+    im.src = editSheetPendingImg;
+  } else {
+    finish({});
+  }
+}
+
+/* ============================================================
+   Shared Cropper engine (Cropper.js)
+   ============================================================ */
+let cropperInstance = null;
+let cropCallback = null;
+function openCropper(src, callback){
+  cropCallback = callback;
+  const img = document.getElementById('cropImageEl');
+  if (cropperInstance){ cropperInstance.destroy(); cropperInstance = null; }
+  document.getElementById('cropOverlay').classList.add('show');
+  const start = () => {
+    if (cropperInstance){ cropperInstance.destroy(); }
+    cropperInstance = new Cropper(img, { viewMode:1, autoCropArea:1, background:false, responsive:true });
+  };
+  img.onload = start;
+  img.onerror = () => {};
+  // Reset the src first: if this exact image was already loaded into this
+  // <img> before (e.g. re-opening the cropper on the same picture), the
+  // browser won't fire 'load' again on a no-op assignment, so the cropper
+  // never initializes and "تطبيق القص" silently does nothing. Clearing the
+  // src first forces a real reload every time.
+  img.src = '';
+  img.src = src;
+}
+
+function resetCrop(){ if (cropperInstance) cropperInstance.reset(); }
+function cancelCrop(){
+  if (cropperInstance){ cropperInstance.destroy(); cropperInstance = null; }
+  document.getElementById('cropOverlay').classList.remove('show');
+  cropCallback = null;
+}
+function applyCrop(){
+  if (!cropperInstance) return;
+  let canvas, dataUrl;
+  try {
+    canvas = cropperInstance.getCroppedCanvas();
+    dataUrl = canvas.toDataURL('image/png');
+  } catch (err){
+    console.error(err);
+    alert('تعذر تطبيق القص على الصورة دي. جرّب تاني، ولو استمرت المشكلة أعد رفع الصورة من جهازك.');
+    return;
+  }
+  const cb = cropCallback;
+  cropperInstance.destroy(); cropperInstance = null;
+  document.getElementById('cropOverlay').classList.remove('show');
+  cropCallback = null;
+  if (cb) cb(dataUrl, canvas.width, canvas.height);
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+/* ============================================================
+   Init
+   ============================================================ */
+(async function init(){
+  try {
+    await loadStateFromServer();
+  } catch(e){
+    console.error(e);
+    alert('تعذر تحميل بيانات النماذج من السيرفر. تأكد من اتصال الإنترنت ثم أعد تحميل الصفحة.');
+  }
+  render();
+})();
+</script>
+
+</body>
+</html>
