@@ -510,7 +510,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn ghost" onclick="closeModal('editSheetOverlay')">إلغاء</button>
-      <button class="btn" onclick="submitEditSheet()">حفظ التعديل</button>
+      <button class="btn" id="editSheetSubmitBtn" onclick="submitEditSheet()">حفظ التعديل</button>
     </div>
   </div>
 </div>
@@ -610,6 +610,28 @@ async function persist(){
     saving = false;
     if (pendingSave){ pendingSave = false; persist(); }
   }
+}
+
+// Images used to be embedded as base64 strings directly inside the shared
+// JSON state (see snapshotState/persist above), which meant every save
+// re-sent every photo ever uploaded and quickly hit the server's request
+// size limit. Now an image is uploaded once to Vercel Blob storage and only
+// its (tiny) URL is kept in the JSON state, so saves stay small regardless
+// of how many photos accumulate.
+async function uploadImageToBlob(dataUrl){
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl })
+  });
+  if (!res.ok){
+    let msg = 'تعذر رفع الصورة إلى السيرفر (خطأ ' + res.status + ').';
+    if (res.status === 413) msg += ' الصورة كبيرة قوي.';
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  if (!data || !data.url) throw new Error('رد غير متوقع من السيرفر أثناء رفع الصورة.');
+  return data.url;
 }
 
 // Poll every 15s so changes made on other devices show up here too.
@@ -1002,12 +1024,12 @@ document.getElementById('excelFile').addEventListener('change', (e) => {
   reader.readAsArrayBuffer(file);
 });
 
-// Every image is stored as a base64 string inside one big shared JSON blob
-// on the server, and the *entire* blob is re-sent on every save. Phone-camera
-// photos (often 3000px+ wide, several MB each) make that blob grow fast until
-// it trips the server's request-size limit — which is exactly what caused
-// saves to fail silently. Downscaling + re-encoding as JPEG here cuts a
-// typical photo down to a few hundred KB while staying sharp enough to print.
+// Images are uploaded to Vercel Blob storage (only the resulting URL is kept
+// in the shared JSON state — see uploadImageToBlob), but the upload itself
+// still goes through this browser's connection. Phone-camera photos (often
+// 3000px+ wide, several MB each) are slow to upload and slow to crop at full
+// size. Downscaling + re-encoding as JPEG here cuts a typical photo down to a
+// few hundred KB while staying sharp enough to print.
 function compressImageDataUrl(dataUrl, maxDim, quality){
   return new Promise((resolve) => {
     const img = new Image();
@@ -1070,7 +1092,7 @@ function openCropperForAdd(){
   });
 }
 
-function submitNewSheet(){
+async function submitNewSheet(){
   const name = document.getElementById('newSheetName').value.trim();
   if (!name) return;
   const isExcelTab = document.getElementById('tabExcel').classList.contains('active');
@@ -1079,7 +1101,19 @@ function submitNewSheet(){
     const wh = pendingExcelOrientation === 'landscape' ? { width_mm:297, height_mm:210 } : { width_mm:210, height_mm:297 };
     sheetObj = { sheet:name, type:'table', table:pendingExcelTable, orientation:pendingExcelOrientation, ...wh };
   } else if (!isExcelTab && pendingImage){
-    sheetObj = { sheet:name, type:'image', img:pendingImage.dataUrl, orientation:pendingImage.orientation, width_mm:pendingImage.width_mm, height_mm:pendingImage.height_mm };
+    const btn = document.getElementById('submitSheetBtn');
+    const prevLabel = btn ? btn.textContent : null;
+    if (btn){ btn.disabled = true; btn.textContent = 'جارِ رفع الصورة...'; }
+    let imgUrl;
+    try {
+      imgUrl = await uploadImageToBlob(pendingImage.dataUrl);
+    } catch(e){
+      alert((e && e.message) || 'تعذر رفع الصورة.');
+      if (btn){ btn.disabled = false; btn.textContent = prevLabel; }
+      return;
+    }
+    if (btn){ btn.disabled = false; btn.textContent = prevLabel; }
+    sheetObj = { sheet:name, type:'image', img:imgUrl, orientation:pendingImage.orientation, width_mm:pendingImage.width_mm, height_mm:pendingImage.height_mm };
   } else { return; }
   addSheet(addSheetFileKey, sheetObj);
   closeModal('addSheetOverlay');
@@ -1149,7 +1183,7 @@ function openCropperForEdit(){
     document.getElementById('editSheetImagePreview').src = dataUrl;
   });
 }
-function submitEditSheet(){
+async function submitEditSheet(){
   const name = document.getElementById('editSheetName').value.trim();
   if (!name || !editSheetTarget) return;
   const widthMm = parseFloat(document.getElementById('editSheetWidthMm').value);
@@ -1178,7 +1212,23 @@ function submitEditSheet(){
     render();
   };
 
-  finish(editSheetPendingImg ? { img: editSheetPendingImg } : {});
+  if (editSheetPendingImg){
+    const btn = document.getElementById('editSheetSubmitBtn');
+    const prevLabel = btn ? btn.textContent : null;
+    if (btn){ btn.disabled = true; btn.textContent = 'جارِ رفع الصورة...'; }
+    let imgUrl;
+    try {
+      imgUrl = await uploadImageToBlob(editSheetPendingImg);
+    } catch(e){
+      alert((e && e.message) || 'تعذر رفع الصورة.');
+      if (btn){ btn.disabled = false; btn.textContent = prevLabel; }
+      return;
+    }
+    if (btn){ btn.disabled = false; btn.textContent = prevLabel; }
+    finish({ img: imgUrl });
+  } else {
+    finish({});
+  }
 }
 
 /* ============================================================
