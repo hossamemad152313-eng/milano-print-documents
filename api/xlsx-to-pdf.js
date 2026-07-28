@@ -110,14 +110,21 @@ export default async function handler(req, res) {
   }
 
   let fixedFileBase64 = fileBase64;
-  try {
-    const originalBuffer = Buffer.from(fileBase64, 'base64');
-    const fixedBuffer = await fixArabicPunctuationInWorkbook(originalBuffer);
-    fixedFileBase64 = fixedBuffer.toString('base64');
-  } catch (err) {
-    // لو الإصلاح فشل لأي سبب (مثلاً ملف مش xlsx عادي)، نكمل بالملف الأصلي
-    // بدل ما نوقف التحويل بالكامل
-    console.error('تعذر تصحيح اتجاه النص العربي تلقائيًا، هيتم التحويل بالملف الأصلي:', err);
+  // TEMP DEBUG BUILD: دالة تصحيح النص العربي متعطلة عمدًا في النسخة دي
+  // عشان نختبر لو هي سبب مشكلة تراكب النص. النسخة دي بس للاختبار —
+  // لو التحويل طلع سليم كده، يبقى المشكلة فعلاً في الدالة دي وهنصلّحها
+  // من غير ما نلغيها خالص.
+  const ARABIC_FIX_ENABLED = false;
+  if (ARABIC_FIX_ENABLED) {
+    try {
+      const originalBuffer = Buffer.from(fileBase64, 'base64');
+      const fixedBuffer = await fixArabicPunctuationInWorkbook(originalBuffer);
+      fixedFileBase64 = fixedBuffer.toString('base64');
+    } catch (err) {
+      // لو الإصلاح فشل لأي سبب (مثلاً ملف مش xlsx عادي)، نكمل بالملف الأصلي
+      // بدل ما نوقف التحويل بالكامل
+      console.error('تعذر تصحيح اتجاه النص العربي تلقائيًا، هيتم التحويل بالملف الأصلي:', err);
+    }
   }
 
   try {
