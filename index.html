@@ -277,12 +277,13 @@
     border:1px solid var(--line);
   }
   .sheet-wrap img{ display:block; width:100%; height:100%; }
-  .xlsx-table-outer{ width:100%; height:100%; overflow:auto; padding:10mm; }
+  .xlsx-table-outer{ width:100%; height:100%; overflow:auto; padding:10mm; direction:rtl !important; }
+  .xlsx-table-outer, .xlsx-table-outer *{ direction:rtl !important; unicode-bidi:embed; }
   .xlsx-table-outer table{
     width:100%; border-collapse:collapse; font-family:'Tajawal', Tahoma, sans-serif; font-size:12px;
   }
   .xlsx-table-outer td, .xlsx-table-outer th{
-    border:1px solid #444; padding:4px 6px; text-align:right;
+    border:1px solid #444; padding:4px 6px; text-align:right !important;
   }
   .letterhead{
     display:flex; align-items:center; justify-content:space-between;
@@ -331,16 +332,17 @@
   .tab-btn.active{ border-color:var(--crimson); color:var(--crimson); background:#fff2f3; }
   .tab-pane{ display:none; flex-direction:column; gap:12px; }
   .tab-pane.active{ display:flex; }
-  .orient-pick{ display:flex; gap:8px; }
+  .orient-pick{ display:flex; gap:8px; flex-wrap:wrap; }
   .orient-pick button{
     flex:1; padding:10px; border-radius:9px; border:1.5px solid var(--line);
     background:#fff; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700; color:var(--muted);
   }
   .orient-pick button.sel{ border-color:var(--gold); color:#8a6d1f; background:#fdf8ec; }
   .hint{ font-size:11.5px; color:var(--muted); }
-  .xlsx-preview{ max-height:150px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px; }
+  .xlsx-preview{ max-height:150px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px; direction:rtl !important; }
+  .xlsx-preview, .xlsx-preview *{ direction:rtl !important; unicode-bidi:embed; }
   .xlsx-preview table{ border-collapse:collapse; font-size:10px; width:100%; }
-  .xlsx-preview td, .xlsx-preview th{ border:1px solid #ddd; padding:2px 4px; }
+  .xlsx-preview td, .xlsx-preview th{ border:1px solid #ddd; padding:2px 4px; text-align:right !important; }
   .img-preview{ text-align:center; }
   .img-preview img{ max-height:150px; max-width:100%; border-radius:6px; border:1px solid var(--line); }
 
@@ -433,6 +435,12 @@
             <button type="button" id="excelPortraitBtn" class="sel" onclick="setExcelOrientation('portrait')">📄 طولي</button>
             <button type="button" id="excelLandscapeBtn" onclick="setExcelOrientation('landscape')">📃 عرضي</button>
           </div>
+          <label class="f-label" style="margin-top:10px;display:block;">مقاس الورقة</label>
+          <div class="orient-pick">
+            <button type="button" id="excelPaperA4Btn" class="sel" onclick="setExcelPaper('A4')">A4 (210×297مم)</button>
+            <button type="button" id="excelPaperLetterBtn" onclick="setExcelPaper('Letter')">Letter (215.9×279.4مم)</button>
+          </div>
+          <div class="hint">اختار نفس المقاس المضبوط في اعدادات الطباعة بالإكسل (Page Setup) عشان الكروب يطلع مظبوط.</div>
         </div>
       </div>
 
@@ -499,6 +507,8 @@
         <div class="orient-pick" style="margin-top:8px;">
           <button type="button" class="btn ghost" onclick="setEditSheetSize(210,297)">A4 طولي</button>
           <button type="button" class="btn ghost" onclick="setEditSheetSize(297,210)">A4 عرضي</button>
+          <button type="button" class="btn ghost" onclick="setEditSheetSize(215.9,279.4)">Letter طولي</button>
+          <button type="button" class="btn ghost" onclick="setEditSheetSize(279.4,215.9)">Letter عرضي</button>
         </div>
         <div class="hint">العرض × الطول بالمليمتر. A4 = 210×297. المقاس ده هو اللي هيتطبع بيه فعليًا.</div>
       </div>
@@ -954,6 +964,8 @@ function submitNewFile(){
 let addSheetFileKey = null;
 let pendingExcelTable = null;
 let pendingExcelOrientation = 'portrait';
+let pendingExcelPaper = 'A4'; // 'A4' or 'Letter' — must match the sheet's actual Excel Page Setup paper size
+const PAPER_SIZES_MM = { A4: { w: 210, h: 297 }, Letter: { w: 215.9, h: 279.4 } };
 let pendingImage = null; // {dataUrl, width_mm, height_mm, orientation}
 
 function openAddSheetModal(fileKey){
@@ -966,6 +978,8 @@ function openAddSheetModal(fileKey){
   document.getElementById('imageOrientWrap').style.display = 'none';
   pendingExcelTable = null; pendingImage = null;
   document.getElementById('submitSheetBtn').disabled = true;
+  setExcelOrientation('portrait');
+  setExcelPaper('A4');
   switchAddTab('excel');
   document.getElementById('addSheetOverlay').classList.add('show');
 }
@@ -980,6 +994,11 @@ function setExcelOrientation(o){
   pendingExcelOrientation = o;
   document.getElementById('excelPortraitBtn').classList.toggle('sel', o === 'portrait');
   document.getElementById('excelLandscapeBtn').classList.toggle('sel', o === 'landscape');
+}
+function setExcelPaper(p){
+  pendingExcelPaper = p;
+  document.getElementById('excelPaperA4Btn').classList.toggle('sel', p === 'A4');
+  document.getElementById('excelPaperLetterBtn').classList.toggle('sel', p === 'Letter');
 }
 function setImageOrientation(o){
   if (!pendingImage || pendingImage.orientation === o) { pendingImage && (pendingImage.orientation = o); }
@@ -1098,7 +1117,8 @@ async function submitNewSheet(){
   const isExcelTab = document.getElementById('tabExcel').classList.contains('active');
   let sheetObj;
   if (isExcelTab && pendingExcelTable){
-    const wh = pendingExcelOrientation === 'landscape' ? { width_mm:297, height_mm:210 } : { width_mm:210, height_mm:297 };
+    const paper = PAPER_SIZES_MM[pendingExcelPaper] || PAPER_SIZES_MM.A4;
+    const wh = pendingExcelOrientation === 'landscape' ? { width_mm:paper.h, height_mm:paper.w } : { width_mm:paper.w, height_mm:paper.h };
     sheetObj = { sheet:name, type:'table', table:pendingExcelTable, orientation:pendingExcelOrientation, ...wh };
   } else if (!isExcelTab && pendingImage){
     const btn = document.getElementById('submitSheetBtn');
