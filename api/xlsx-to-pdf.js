@@ -112,48 +112,51 @@ export default async function handler(req, res) {
     // طلب بياخد إعدادات الطباعة (اتجاه/مقاس/منطقة طباعة) المتخزنة في
     // الشيت نفسه، بالظبط زي لو فتحتيه وطبعتيه يدوي.
     //
-    // مهم: لو طلبنا كل الشيتات مرة واحدة بالتوازي، جوجل بيرفض بعضها بخطأ
-    // 429 (Too Many Requests). عشان كده بنحدد أقصى عدد طلبات شغالة في نفس
-    // اللحظة (CONCURRENCY)، وأي طلب يرجع بـ 429 بنعيده تاني بعد انتظار
-    // قصير (retryFetch) بدل ما نفشل على طول.
+    // مهم جدًا: جوجل بيحدد معدل الطلبات على رابط الـ export ده بشكل صارم
+    // جدًا — حتى 3 طلبات في نفس اللحظة كانت بتترفض بخطأ 429. عشان كده
+    // بقينا نبعت الطلبات واحد ورا التاني (مش بالتوازي خالص)، ومستنيين
+    // فترة ثابتة بين كل طلب والتاني حتى لو نجح، بالإضافة لإعادة محاولة
+    // بانتظار متزايد لو حصل 429.
     const tokenResult = await auth.getAccessToken();
     const accessToken = (typeof tokenResult === 'string') ? tokenResult : tokenResult.token;
 
-    async function retryFetch(url, attempts = 4) {
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    async function retryFetch(url, attempts = 6) {
       for (let i = 0; i < attempts; i++) {
         const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
         if (resp.status !== 429) return resp;
-        // كل محاولة فاشلة بتستنى أكتر من اللي قبلها (400ms, 800ms, 1600ms...)
-        await new Promise(r => setTimeout(r, 400 * Math.pow(2, i)));
-      }
-      // آخر محاولة، أيًا كانت نتيجتها بنرجعها زي ما هي عشان تتحقق من status بعدين
-      return fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    }
-
-    const CONCURRENCY = 3;
-    const sheetPdfBuffers = new Array(visibleSheets.length);
-    let nextIndex = 0;
-
-    async function worker() {
-      while (nextIndex < visibleSheets.length) {
-        const i = nextIndex++;
-        const sheetProps = visibleSheets[i];
-        const exportUrl =
-          `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-          `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
-          `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
-
-        const pdfResp = await retryFetch(exportUrl);
-        if (!pdfResp.ok) {
-          let details = '';
-          try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
-          throw new Error(`فشل تصدير شيت "${sheetProps.title}" من جوجل (خطأ ${pdfResp.status}). ${details.slice(0, 300)}`);
+        if (i < attempts - 1) {
+          // انتظار متزايد بين كل محاولة والتانية (1s, 2s, 4s, 8s, 16s...)
+          await sleep(1000 * Math.pow(2, i));
+        } else {
+          return resp; // خلصت المحاولات، رجّع آخر رد زي ما هو
         }
-        sheetPdfBuffers[i] = await pdfResp.arrayBuffer();
       }
     }
 
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, visibleSheets.length) }, worker));
+    const GAP_BETWEEN_REQUESTS_MS = 600; // فترة ثابتة بعد كل طلب ناجح قبل ما نبعت اللي بعده
+    const sheetPdfBuffers = [];
+
+    for (const sheetProps of visibleSheets) {
+      const exportUrl =
+        `https://docs.google.com/spreadsheets/d/${fileId}/export` +
+        `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
+        `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
+
+      const pdfResp = await retryFetch(exportUrl);
+      if (!pdfResp.ok) {
+        if (pdfResp.status === 429) {
+          throw new Error(`جوجل رفض تصدير شيت "${sheetProps.title}" بسبب كثرة الطلبات (429) حتى بعد ${6} محاولات وانتظار متزايد بينهم. لو الملف فيه شيتات كتير جدًا، جرّبي تقسّميه لملفين أصغر وابعتيهم على مرتين.`);
+        }
+        let details = '';
+        try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
+        const cleanDetails = details.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        throw new Error(`فشل تصدير شيت "${sheetProps.title}" من جوجل (خطأ ${pdfResp.status}). ${cleanDetails.slice(0, 200)}`);
+      }
+      sheetPdfBuffers.push(await pdfResp.arrayBuffer());
+      await sleep(GAP_BETWEEN_REQUESTS_MS);
+    }
 
     const mergedPdf = await PDFDocument.create();
     for (const sheetPdfBytes of sheetPdfBuffers) {
