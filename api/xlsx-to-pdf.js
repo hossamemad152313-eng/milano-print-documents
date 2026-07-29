@@ -111,30 +111,49 @@ export default async function handler(req, res) {
     // اللي كل النماذج مش بتتصدّر. الحل: طلب منفصل لكل شيت بترتيبه، وكل
     // طلب بياخد إعدادات الطباعة (اتجاه/مقاس/منطقة طباعة) المتخزنة في
     // الشيت نفسه، بالظبط زي لو فتحتيه وطبعتيه يدوي.
+    //
+    // مهم: لو طلبنا كل الشيتات مرة واحدة بالتوازي، جوجل بيرفض بعضها بخطأ
+    // 429 (Too Many Requests). عشان كده بنحدد أقصى عدد طلبات شغالة في نفس
+    // اللحظة (CONCURRENCY)، وأي طلب يرجع بـ 429 بنعيده تاني بعد انتظار
+    // قصير (retryFetch) بدل ما نفشل على طول.
     const tokenResult = await auth.getAccessToken();
     const accessToken = (typeof tokenResult === 'string') ? tokenResult : tokenResult.token;
 
-    // بنطلب كل الشيتات مع بعض (مش واحد ورا التاني) عشان السيرفر ميستناش
-    // وقت طويل مع الملفات اللي فيها شيتات كتير — بس بنحافظ على الترتيب
-    // الأصلي وقت اللزق في الخطوة اللي بعدها.
-    const sheetPdfBuffers = await Promise.all(visibleSheets.map(async (sheetProps) => {
-      const exportUrl =
-        `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-        `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
-        `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
-
-      const pdfResp = await fetch(exportUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-
-      if (!pdfResp.ok) {
-        let details = '';
-        try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
-        throw new Error(`فشل تصدير شيت "${sheetProps.title}" من جوجل (خطأ ${pdfResp.status}). ${details.slice(0, 300)}`);
+    async function retryFetch(url, attempts = 4) {
+      for (let i = 0; i < attempts; i++) {
+        const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (resp.status !== 429) return resp;
+        // كل محاولة فاشلة بتستنى أكتر من اللي قبلها (400ms, 800ms, 1600ms...)
+        await new Promise(r => setTimeout(r, 400 * Math.pow(2, i)));
       }
+      // آخر محاولة، أيًا كانت نتيجتها بنرجعها زي ما هي عشان تتحقق من status بعدين
+      return fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    }
 
-      return pdfResp.arrayBuffer();
-    }));
+    const CONCURRENCY = 3;
+    const sheetPdfBuffers = new Array(visibleSheets.length);
+    let nextIndex = 0;
+
+    async function worker() {
+      while (nextIndex < visibleSheets.length) {
+        const i = nextIndex++;
+        const sheetProps = visibleSheets[i];
+        const exportUrl =
+          `https://docs.google.com/spreadsheets/d/${fileId}/export` +
+          `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
+          `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
+
+        const pdfResp = await retryFetch(exportUrl);
+        if (!pdfResp.ok) {
+          let details = '';
+          try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
+          throw new Error(`فشل تصدير شيت "${sheetProps.title}" من جوجل (خطأ ${pdfResp.status}). ${details.slice(0, 300)}`);
+        }
+        sheetPdfBuffers[i] = await pdfResp.arrayBuffer();
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, visibleSheets.length) }, worker));
 
     const mergedPdf = await PDFDocument.create();
     for (const sheetPdfBytes of sheetPdfBuffers) {
@@ -169,5 +188,9 @@ export const config = {
       sizeLimit: '14mb'
     }
   },
-  maxDuration: 60 // بياخد وقت أطول شوية دلوقتي لإنه بيصدّر كل شيت لوحده (لازم يبقى متاح على خطتك في Vercel)
+  maxDuration: 60
+  // ملحوظة: الرقم ده شغال عادي على خطة Hobby كمان (مش لازم Pro) لإن
+  // Vercel بقت مفعّلة Fluid Compute افتراضيًا، وده بيرفع أقصى مدة تنفيذ
+  // على Hobby لحد 300 ثانية. سبب أي فشل سريع مش هيبقى الوقت، هيبقى الـ
+  // 429 من جوجل لو الشيتات كتير قوي ومحتاجة إعادة محاولة أكتر.
 };
