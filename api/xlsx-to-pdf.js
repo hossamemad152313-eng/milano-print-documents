@@ -25,6 +25,7 @@
 
 import { google } from 'googleapis';
 import { Readable } from 'stream';
+import { PDFDocument } from 'pdf-lib';
 
 function bufferToStream(buffer) {
   const stream = new Readable();
@@ -104,30 +105,49 @@ export default async function handler(req, res) {
       throw new Error('الملف مفيهوش أي شيتات ظاهرة تتصدّر');
     }
 
-    // 3) صدّر الملف كله كـ PDF — تكرار gid لكل شيت بيخلي جوجل يحطهم كلهم
-    // في نفس الـ PDF بترتيبهم، وكل شيت بياخد إعدادات الطباعة (اتجاه/مقاس/
-    // منطقة طباعة) المتخزنة فيه هو نفسه، بالظبط زي لو فتحتيه وطبعتيه يدوي.
-    const gidParams = visibleSheets.map(p => `gid=${p.sheetId}`).join('&');
-    const exportUrl =
-      `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-      `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
-      `&sheetnames=false&pagenumbers=false&${gidParams}`;
-
+    // 3) صدّر كل شيت لوحده كـ PDF منفصل (صفحة واحدة).
+    // ملحوظة مهمة: رابط تصدير جوجل شيتس بيتجاهل تكرار gid= في نفس اللينك
+    // وبياخد شيت واحد بس مهما كررنا الباراميتر ده — ده كان سبب المشكلة
+    // اللي كل النماذج مش بتتصدّر. الحل: طلب منفصل لكل شيت بترتيبه، وكل
+    // طلب بياخد إعدادات الطباعة (اتجاه/مقاس/منطقة طباعة) المتخزنة في
+    // الشيت نفسه، بالظبط زي لو فتحتيه وطبعتيه يدوي.
     const tokenResult = await auth.getAccessToken();
     const accessToken = (typeof tokenResult === 'string') ? tokenResult : tokenResult.token;
-    const pdfResp = await fetch(exportUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
 
-    if (!pdfResp.ok) {
-      let details = '';
-      try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
-      throw new Error(`فشل تصدير الـ PDF من جوجل (خطأ ${pdfResp.status}). ${details.slice(0, 300)}`);
+    // بنطلب كل الشيتات مع بعض (مش واحد ورا التاني) عشان السيرفر ميستناش
+    // وقت طويل مع الملفات اللي فيها شيتات كتير — بس بنحافظ على الترتيب
+    // الأصلي وقت اللزق في الخطوة اللي بعدها.
+    const sheetPdfBuffers = await Promise.all(visibleSheets.map(async (sheetProps) => {
+      const exportUrl =
+        `https://docs.google.com/spreadsheets/d/${fileId}/export` +
+        `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
+        `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
+
+      const pdfResp = await fetch(exportUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (!pdfResp.ok) {
+        let details = '';
+        try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
+        throw new Error(`فشل تصدير شيت "${sheetProps.title}" من جوجل (خطأ ${pdfResp.status}). ${details.slice(0, 300)}`);
+      }
+
+      return pdfResp.arrayBuffer();
+    }));
+
+    const mergedPdf = await PDFDocument.create();
+    for (const sheetPdfBytes of sheetPdfBuffers) {
+      const sheetPdf = await PDFDocument.load(sheetPdfBytes);
+      const copiedPages = await mergedPdf.copyPages(sheetPdf, sheetPdf.getPageIndices());
+      copiedPages.forEach(page => mergedPdf.addPage(page));
     }
 
-    const pdfBuffer = Buffer.from(await pdfResp.arrayBuffer());
+    // 4) نلزّق كل الصفحات دي في ملف نهائي واحد ونرجّعه للموقع، بنفس ترتيب
+    // الشيتات، عشان التقطيع بمكتبة pdf.js في المتصفح يطابق أسامي الشيتات.
+    const mergedBytes = await mergedPdf.save();
     res.setHeader('Content-Type', 'application/pdf');
-    res.status(200).send(pdfBuffer);
+    res.status(200).send(Buffer.from(mergedBytes));
   } catch (err) {
     console.error('فشل التحويل عبر جوجل:', err);
     res.status(500).json({ error: (err && err.message) || 'حصل خطأ غير متوقع أثناء التحويل' });
@@ -148,5 +168,6 @@ export const config = {
     bodyParser: {
       sizeLimit: '14mb'
     }
-  }
+  },
+  maxDuration: 60 // بياخد وقت أطول شوية دلوقتي لإنه بيصدّر كل شيت لوحده (لازم يبقى متاح على خطتك في Vercel)
 };
