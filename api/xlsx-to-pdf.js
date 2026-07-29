@@ -105,18 +105,19 @@ export default async function handler(req, res) {
       throw new Error('الملف مفيهوش أي شيتات ظاهرة تتصدّر');
     }
 
-    // 3) صدّر كل شيت لوحده كـ PDF منفصل (صفحة واحدة).
-    // ملحوظة مهمة: رابط تصدير جوجل شيتس بيتجاهل تكرار gid= في نفس اللينك
-    // وبياخد شيت واحد بس مهما كررنا الباراميتر ده — ده كان سبب المشكلة
-    // اللي كل النماذج مش بتتصدّر. الحل: طلب منفصل لكل شيت بترتيبه، وكل
-    // طلب بياخد إعدادات الطباعة (اتجاه/مقاس/منطقة طباعة) المتخزنة في
-    // الشيت نفسه، بالظبط زي لو فتحتيه وطبعتيه يدوي.
+    // 3) صدّر الملف كله كـ PDF بطلب واحد بس وسريع.
+    // اكتشفنا إن رابط تصدير جوجل شيتس لو *ماتكتبش gid خالص* (مش تكرره
+    // ومش تسيبه فاضي)، بيصدّر كل الشيتات الظاهرة مرة واحدة في نفس ملف
+    // الـ PDF، كل شيت بإعدادات الطباعة (اتجاه/مقاس/منطقة طباعة) بتاعته
+    // هو، وده أسرع بكتير من إننا نطلب كل شيت لوحده. المشكلة الأصلية
+    // كانت إننا كنا بنكرر gid= لكل شيت في نفس اللينك، وده اللي كان
+    // بيخلي جوجل ياخد شيت واحد بس.
     //
-    // مهم جدًا: جوجل بيحدد معدل الطلبات على رابط الـ export ده بشكل صارم
-    // جدًا — حتى 3 طلبات في نفس اللحظة كانت بتترفض بخطأ 429. عشان كده
-    // بقينا نبعت الطلبات واحد ورا التاني (مش بالتوازي خالص)، ومستنيين
-    // فترة ثابتة بين كل طلب والتاني حتى لو نجح، بالإضافة لإعادة محاولة
-    // بانتظار متزايد لو حصل 429.
+    // احتياطًا (لو التصرف ده اتغيّر من جوجل أو ملف معين اتصرف بشكل
+    // مختلف)، بعد ما ناخد الـ PDF بنتاكد إن عدد صفحاته يطابق عدد
+    // الشيتات الظاهرة. لو مطابق، نرجعه على طول. لو مش مطابق، نرجع
+    // لطريقة الاحتياط الأبطأ: نصدّر كل شيت لوحده (بالتتابع مع فواصل
+    // زمنية وإعادة محاولة لو حصل 429) ونلزقهم بمكتبة pdf-lib.
     const tokenResult = await auth.getAccessToken();
     const accessToken = (typeof tokenResult === 'string') ? tokenResult : tokenResult.token;
 
@@ -135,41 +136,62 @@ export default async function handler(req, res) {
       }
     }
 
-    const GAP_BETWEEN_REQUESTS_MS = 600; // فترة ثابتة بعد كل طلب ناجح قبل ما نبعت اللي بعده
-    const sheetPdfBuffers = [];
+    let finalPdfBytes = null;
 
-    for (const sheetProps of visibleSheets) {
-      const exportUrl =
+    // --- المحاولة السريعة: طلب واحد بدون gid خالص ---
+    try {
+      const allSheetsUrl =
         `https://docs.google.com/spreadsheets/d/${fileId}/export` +
         `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
-        `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
-
-      const pdfResp = await retryFetch(exportUrl);
-      if (!pdfResp.ok) {
-        if (pdfResp.status === 429) {
-          throw new Error(`جوجل رفض تصدير شيت "${sheetProps.title}" بسبب كثرة الطلبات (429) حتى بعد ${6} محاولات وانتظار متزايد بينهم. لو الملف فيه شيتات كتير جدًا، جرّبي تقسّميه لملفين أصغر وابعتيهم على مرتين.`);
+        `&sheetnames=false&pagenumbers=false`;
+      const pdfResp = await retryFetch(allSheetsUrl);
+      if (pdfResp.ok) {
+        const bytes = await pdfResp.arrayBuffer();
+        const pdf = await PDFDocument.load(bytes);
+        if (pdf.getPageCount() === visibleSheets.length) {
+          finalPdfBytes = bytes;
         }
-        let details = '';
-        try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
-        const cleanDetails = details.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        throw new Error(`فشل تصدير شيت "${sheetProps.title}" من جوجل (خطأ ${pdfResp.status}). ${cleanDetails.slice(0, 200)}`);
       }
-      sheetPdfBuffers.push(await pdfResp.arrayBuffer());
-      await sleep(GAP_BETWEEN_REQUESTS_MS);
+    } catch (fastPathErr) {
+      console.error('المحاولة السريعة (بدون gid) فشلت، هنرجع للطريقة الاحتياطية:', fastPathErr);
     }
 
-    const mergedPdf = await PDFDocument.create();
-    for (const sheetPdfBytes of sheetPdfBuffers) {
-      const sheetPdf = await PDFDocument.load(sheetPdfBytes);
-      const copiedPages = await mergedPdf.copyPages(sheetPdf, sheetPdf.getPageIndices());
-      copiedPages.forEach(page => mergedPdf.addPage(page));
+    // --- الطريقة الاحتياطية: شيت شيت لوحده ثم لزق بمكتبة pdf-lib ---
+    if (!finalPdfBytes) {
+      const GAP_BETWEEN_REQUESTS_MS = 600; // فترة ثابتة بعد كل طلب ناجح قبل ما نبعت اللي بعده
+      const sheetPdfBuffers = [];
+
+      for (const sheetProps of visibleSheets) {
+        const exportUrl =
+          `https://docs.google.com/spreadsheets/d/${fileId}/export` +
+          `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
+          `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
+
+        const pdfResp = await retryFetch(exportUrl);
+        if (!pdfResp.ok) {
+          if (pdfResp.status === 429) {
+            throw new Error(`جوجل رفض تصدير شيت "${sheetProps.title}" بسبب كثرة الطلبات (429) حتى بعد 6 محاولات وانتظار متزايد بينهم. لو الملف فيه شيتات كتير جدًا، جرّبي تقسّميه لملفين أصغر وابعتيهم على مرتين.`);
+          }
+          let details = '';
+          try { details = await pdfResp.text(); } catch (e) { /* ignore */ }
+          const cleanDetails = details.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          throw new Error(`فشل تصدير شيت "${sheetProps.title}" من جوجل (خطأ ${pdfResp.status}). ${cleanDetails.slice(0, 200)}`);
+        }
+        sheetPdfBuffers.push(await pdfResp.arrayBuffer());
+        await sleep(GAP_BETWEEN_REQUESTS_MS);
+      }
+
+      const mergedPdf = await PDFDocument.create();
+      for (const sheetPdfBytes of sheetPdfBuffers) {
+        const sheetPdf = await PDFDocument.load(sheetPdfBytes);
+        const copiedPages = await mergedPdf.copyPages(sheetPdf, sheetPdf.getPageIndices());
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+      }
+      finalPdfBytes = await mergedPdf.save();
     }
 
-    // 4) نلزّق كل الصفحات دي في ملف نهائي واحد ونرجّعه للموقع، بنفس ترتيب
-    // الشيتات، عشان التقطيع بمكتبة pdf.js في المتصفح يطابق أسامي الشيتات.
-    const mergedBytes = await mergedPdf.save();
     res.setHeader('Content-Type', 'application/pdf');
-    res.status(200).send(Buffer.from(mergedBytes));
+    res.status(200).send(Buffer.from(finalPdfBytes));
   } catch (err) {
     console.error('فشل التحويل عبر جوجل:', err);
     res.status(500).json({ error: (err && err.message) || 'حصل خطأ غير متوقع أثناء التحويل' });
