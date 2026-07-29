@@ -321,11 +321,35 @@
   .modal-body{ padding:20px 22px; display:flex; flex-direction:column; gap:14px; }
   .modal-foot{ padding:16px 22px 22px; display:flex; gap:10px; justify-content:flex-end; }
   label.f-label{ font-size:12.5px; font-weight:700; color:#45536b; }
-  input[type=text].f-input, input[type=file].f-input{
+  input[type=text].f-input, input[type=file].f-input, input[type=number].f-input{
     width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid var(--line);
     font-family:inherit; font-size:14px;
   }
-  input[type=text].f-input:focus{ outline:none; border-color:var(--gold); }
+  input[type=text].f-input:focus, input[type=number].f-input:focus{ outline:none; border-color:var(--gold); }
+
+  /* Fancy oval/pill number inputs — used for the paper width/height (mm) fields */
+  input[type=number].f-input-oval{
+    border-radius:999px !important;
+    border:2px solid var(--line);
+    background:#fdfcfa;
+    font-weight:700;
+    font-size:15.5px;
+    color:var(--navy);
+    padding:13px 10px !important;
+    box-shadow: inset 0 1px 3px rgba(13,19,33,0.05);
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  input[type=number].f-input-oval:hover{ border-color:#cfcabb; }
+  input[type=number].f-input-oval:focus{
+    outline:none;
+    border-color:var(--gold) !important;
+    background:#fff;
+    box-shadow: 0 0 0 4px rgba(198,161,91,0.16);
+  }
+  input[type=number].f-input-oval::-webkit-outer-spin-button,
+  input[type=number].f-input-oval::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number].f-input-oval{ -moz-appearance:textfield; }
+  input[type=number].f-input-oval::placeholder{ color:var(--muted); font-weight:600; }
   .icon-pick{ display:flex; flex-wrap:wrap; gap:8px; }
   .icon-pick button{
     width:42px; height:42px; border-radius:10px; border:1.5px solid var(--line);
@@ -361,7 +385,8 @@
   /* ===== Print rules ===== */
   @media print {
     header.brand, .toolbar, .preview-bar, .empty-note, .overlay, main > .grid, .section-title { display:none !important; }
-    body{ background:#fff; }
+    html, body{ background:#fff; margin:0 !important; padding:0 !important; }
+    main{ padding:0 !important; margin:0 !important; max-width:none !important; }
     .stage{ padding:0; display:block; }
     .sheet-wrap{
       box-shadow:none; border:none;
@@ -429,8 +454,7 @@
         <input type="text" class="f-input" id="newSheetName" placeholder="مثال: تقرير الجودة">
       </div>
       <div class="tabs">
-        <button class="tab-btn active" id="tabExcelBtn" onclick="switchAddTab('excel')">📊 استيراد من إكسل</button>
-        <button class="tab-btn" id="tabImageBtn" onclick="switchAddTab('image')">🖼️ رفع صورة</button>
+        <button class="tab-btn active" id="tabImageBtn" onclick="switchAddTab('image')">🖼️ رفع صورة</button>
         <button class="tab-btn" id="tabPdfBtn" onclick="switchAddTab('pdf')">📑 استيراد ملف كامل (الأدق)</button>
       </div>
 
@@ -444,26 +468,7 @@
         <div id="pdfPreviewList" style="margin-top:10px;display:flex;flex-direction:column;gap:10px;"></div>
       </div>
 
-      <div class="tab-pane" id="tabExcel">
-        <input type="file" class="f-input" id="excelFile" accept=".xlsx,.xls">
-        <div class="hint">هيتم تحويل كل الشيتات (التابات) في الملف لصفحات طباعة منفصلة، كل واحدة باسم التاب بتاعها.</div>
-        <div id="excelPreviewWrap" style="display:none;">
-          <div class="xlsx-preview" id="excelPreview"></div>
-          <label class="f-label" style="margin-top:10px;display:block;">اتجاه الصفحة</label>
-          <div class="orient-pick">
-            <button type="button" id="excelPortraitBtn" class="sel" onclick="setExcelOrientation('portrait')">📄 طولي</button>
-            <button type="button" id="excelLandscapeBtn" onclick="setExcelOrientation('landscape')">📃 عرضي</button>
-          </div>
-          <label class="f-label" style="margin-top:10px;display:block;">مقاس الورقة</label>
-          <div class="orient-pick">
-            <button type="button" id="excelPaperA4Btn" class="sel" onclick="setExcelPaper('A4')">A4 (210×297مم)</button>
-            <button type="button" id="excelPaperLetterBtn" onclick="setExcelPaper('Letter')">Letter (215.9×279.4مم)</button>
-          </div>
-          <div class="hint">اختار نفس المقاس المضبوط في اعدادات الطباعة بالإكسل (Page Setup) عشان الكروب يطلع مظبوط.</div>
-        </div>
-      </div>
-
-      <div class="tab-pane" id="tabImage">
+      <div class="tab-pane active" id="tabImage">
         <input type="file" class="f-input" id="imageFile" accept="image/*">
         <div class="hint">هيتم أخذ مقاس الصورة الأصلي تلقائيًا عشان الطباعة تطلع مضبوطة.</div>
         <div class="img-preview" id="imagePreviewWrap" style="display:none;">
@@ -518,10 +523,10 @@
       </div>
       <div>
         <label class="f-label">مقاس الورقة (مم)</label>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <input type="number" class="f-input" id="editSheetWidthMm" placeholder="العرض" min="1" step="0.1" style="text-align:center;">
-          <span style="color:var(--muted); font-weight:700;">×</span>
-          <input type="number" class="f-input" id="editSheetHeightMm" placeholder="الطول" min="1" step="0.1" style="text-align:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="number" class="f-input f-input-oval" id="editSheetWidthMm" placeholder="العرض" min="1" step="0.1" style="text-align:center;">
+          <span style="color:var(--gold); font-weight:900; font-size:16px;">×</span>
+          <input type="number" class="f-input f-input-oval" id="editSheetHeightMm" placeholder="الطول" min="1" step="0.1" style="text-align:center;">
         </div>
         <div class="orient-pick" style="margin-top:8px;">
           <button type="button" class="btn ghost" onclick="setEditSheetSize(210,297)">A4 طولي</button>
@@ -978,51 +983,31 @@ function submitNewFile(){
 }
 
 /* ============================================================
-   Modals — Add Sheet (Excel / Image)
+   Modals — Add Sheet (Image / PDF)
    ============================================================ */
 let addSheetFileKey = null;
-let pendingExcelSheets = []; // [{name, html}] — one entry per tab/sheet found in the uploaded workbook
-let pendingExcelOrientation = 'portrait';
-let pendingExcelPaper = 'A4'; // 'A4' or 'Letter' — must match the sheet's actual Excel Page Setup paper size
-const PAPER_SIZES_MM = { A4: { w: 210, h: 297 }, Letter: { w: 215.9, h: 279.4 } };
 let pendingImage = null; // {dataUrl, width_mm, height_mm, orientation}
 
 function openAddSheetModal(fileKey){
   addSheetFileKey = fileKey;
   document.getElementById('newSheetName').value = '';
-  document.getElementById('excelFile').value = '';
   document.getElementById('imageFile').value = '';
-  document.getElementById('excelPreviewWrap').style.display = 'none';
   document.getElementById('imagePreviewWrap').style.display = 'none';
   document.getElementById('imageOrientWrap').style.display = 'none';
   document.getElementById('newSheetName').disabled = false;
   document.getElementById('newSheetName').placeholder = '';
-  pendingExcelSheets = []; pendingImage = null;
+  pendingImage = null;
   document.getElementById('submitSheetBtn').disabled = true;
-  setExcelOrientation('portrait');
-  setExcelPaper('A4');
   resetPdfTab();
-  switchAddTab('excel');
+  switchAddTab('image');
   document.getElementById('addSheetOverlay').classList.add('show');
 }
 function switchAddTab(tab){
-  document.getElementById('tabExcelBtn').classList.toggle('active', tab === 'excel');
   document.getElementById('tabImageBtn').classList.toggle('active', tab === 'image');
   document.getElementById('tabPdfBtn').classList.toggle('active', tab === 'pdf');
-  document.getElementById('tabExcel').classList.toggle('active', tab === 'excel');
   document.getElementById('tabImage').classList.toggle('active', tab === 'image');
   document.getElementById('tabPdf').classList.toggle('active', tab === 'pdf');
   updateSubmitEnabled();
-}
-function setExcelOrientation(o){
-  pendingExcelOrientation = o;
-  document.getElementById('excelPortraitBtn').classList.toggle('sel', o === 'portrait');
-  document.getElementById('excelLandscapeBtn').classList.toggle('sel', o === 'landscape');
-}
-function setExcelPaper(p){
-  pendingExcelPaper = p;
-  document.getElementById('excelPaperA4Btn').classList.toggle('sel', p === 'A4');
-  document.getElementById('excelPaperLetterBtn').classList.toggle('sel', p === 'Letter');
 }
 function setImageOrientation(o){
   if (!pendingImage || pendingImage.orientation === o) { pendingImage && (pendingImage.orientation = o); }
@@ -1037,47 +1022,12 @@ function setImageOrientation(o){
 }
 function updateSubmitEnabled(){
   const name = document.getElementById('newSheetName').value.trim();
-  const isExcelTab = document.getElementById('tabExcel').classList.contains('active');
   const isPdfTab = document.getElementById('tabPdf').classList.contains('active');
   if (isPdfTab){ document.getElementById('submitSheetBtn').disabled = true; return; }
-  const excelOk = pendingExcelSheets.length > 1 ? pendingExcelSheets.length > 0 : (name && pendingExcelSheets.length > 0);
-  const ok = isExcelTab ? excelOk : (name && pendingImage);
+  const ok = name && pendingImage;
   document.getElementById('submitSheetBtn').disabled = !ok;
 }
 document.getElementById('newSheetName').addEventListener('input', updateSubmitEnabled);
-
-document.getElementById('excelFile').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const wb = XLSX.read(ev.target.result, { type:'array' });
-      // Import every tab in the workbook as its own print-ready sheet —
-      // not just the first one. A single-tab file behaves exactly as before.
-      pendingExcelSheets = wb.SheetNames.map(wsName => ({
-        name: wsName,
-        html: XLSX.utils.sheet_to_html(wb.Sheets[wsName], { editable:false })
-      }));
-      document.getElementById('excelPreview').innerHTML = pendingExcelSheets[0].html;
-      document.getElementById('excelPreviewWrap').style.display = 'block';
-      const nameField = document.getElementById('newSheetName');
-      if (pendingExcelSheets.length > 1){
-        nameField.value = '';
-        nameField.disabled = true;
-        nameField.placeholder = 'هيتم استيراد ' + pendingExcelSheets.length + ' نموذج، كل واحد باسم التاب بتاعه في الإكسل';
-      } else {
-        nameField.disabled = false;
-        nameField.placeholder = '';
-        if (!nameField.value.trim()) nameField.value = pendingExcelSheets[0].name;
-      }
-      updateSubmitEnabled();
-    } catch(err){
-      alert('تعذر قراءة ملف الإكسل. تأكد إنه بصيغة xlsx أو xls.');
-    }
-  };
-  reader.readAsArrayBuffer(file);
-});
 
 // Images are uploaded to Vercel Blob storage (only the resulting URL is kept
 // in the shared JSON state — see uploadImageToBlob), but the upload itself
@@ -1304,15 +1254,7 @@ async function addAllConvertedPdfSheets(){
 
 async function submitNewSheet(){
   const name = document.getElementById('newSheetName').value.trim();
-  const isExcelTab = document.getElementById('tabExcel').classList.contains('active');
-  if (isExcelTab && pendingExcelSheets.length){
-    const paper = PAPER_SIZES_MM[pendingExcelPaper] || PAPER_SIZES_MM.A4;
-    const wh = pendingExcelOrientation === 'landscape' ? { width_mm:paper.h, height_mm:paper.w } : { width_mm:paper.w, height_mm:paper.h };
-    pendingExcelSheets.forEach(s => {
-      const sheetName = pendingExcelSheets.length > 1 ? s.name : (name || s.name);
-      addSheet(addSheetFileKey, { sheet:sheetName, type:'table', table:s.html, orientation:pendingExcelOrientation, ...wh });
-    });
-  } else if (!isExcelTab && pendingImage){
+  if (pendingImage){
     const btn = document.getElementById('submitSheetBtn');
     const prevLabel = btn ? btn.textContent : null;
     if (btn){ btn.disabled = true; btn.textContent = 'جارِ رفع الصورة...'; }
