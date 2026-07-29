@@ -1,0 +1,10 @@
+{
+  "name": "print-app-milano",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@vercel/kv": "^2.0.0",
+    "@vercel/blob": "^0.27.1",
+    "googleapis": "^144.0.0"
+  }
+}
