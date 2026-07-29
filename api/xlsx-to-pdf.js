@@ -26,12 +26,75 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { PDFDocument } from 'pdf-lib';
+import JSZip from 'jszip';
 
 function bufferToStream(buffer) {
   const stream = new Readable();
   stream.push(buffer);
   stream.push(null);
   return stream;
+}
+
+// بيقرا إعدادات الطباعة الحقيقية (اتجاه/مقاس ورق/هل مفعّل "ملائمة الصفحة")
+// المخزّنة جوه ملف الإكسل الأصلي نفسه لكل شيت، بدل ما نفترض إعدادات ثابتة.
+// ملف الـ xlsx هو zip فيه ملفات XML؛ إعدادات الطباعة موجودة في
+// xl/worksheets/sheetN.xml جوه تاج <pageSetup>.
+async function extractPageSetups(fileBuffer) {
+  const result = {}; // sheetName -> { portrait, sizeCode, fitToPage }
+  try {
+    const zip = await JSZip.loadAsync(fileBuffer);
+
+    const workbookXmlFile = zip.file('xl/workbook.xml');
+    const relsXmlFile = zip.file('xl/_rels/workbook.xml.rels');
+    if (!workbookXmlFile || !relsXmlFile) return result;
+
+    const workbookXml = await workbookXmlFile.async('string');
+    const relsXml = await relsXmlFile.async('string');
+
+    // اسم الشيت -> r:id بتاعه (من ترتيب <sheet .../> جوه workbook.xml)
+    const nameToRid = {};
+    for (const tag of workbookXml.match(/<sheet\b[^>]*\/>/g) || []) {
+      const name = (tag.match(/name="([^"]*)"/) || [])[1];
+      const rid = (tag.match(/r:id="([^"]*)"/) || [])[1];
+      if (name && rid) nameToRid[name] = rid;
+    }
+
+    // r:id -> اسم ملف الـ XML بتاع الشيت (worksheets/sheetX.xml)
+    const ridToTarget = {};
+    for (const tag of relsXml.match(/<Relationship\b[^>]*\/>/g) || []) {
+      const id = (tag.match(/Id="([^"]*)"/) || [])[1];
+      const target = (tag.match(/Target="([^"]*)"/) || [])[1];
+      if (id && target) ridToTarget[id] = target;
+    }
+
+    // مطابقة أكواد مقاس الورق بتاعة Excel (ECMA-376) بأكواد مقاس التصدير
+    // بتاعة جوجل شيتس (0=Letter,2=Legal,6=A3,7=A4,8=A5)
+    const paperSizeMap = { 1: 0, 5: 2, 8: 6, 9: 7, 11: 8 };
+
+    for (const [sheetName, rid] of Object.entries(nameToRid)) {
+      const target = ridToTarget[rid];
+      if (!target) continue;
+      const normalizedPath = target.startsWith('/') ? target.slice(1) : `xl/${target}`;
+      const sheetFile = zip.file(normalizedPath) || zip.file(target);
+      if (!sheetFile) continue;
+
+      const sheetXml = await sheetFile.async('string');
+      const pageSetupTag = (sheetXml.match(/<pageSetup\b[^>]*\/>/) || [])[0] || '';
+      const fitToPageTag = sheetXml.match(/<pageSetUpPr\b[^>]*fitToPage="(1|true)"[^>]*\/>/);
+
+      const orientation = (pageSetupTag.match(/orientation="([^"]*)"/) || [])[1] || 'portrait';
+      const paperSizeCodeRaw = (pageSetupTag.match(/paperSize="([^"]*)"/) || [])[1];
+
+      result[sheetName] = {
+        portrait: orientation !== 'landscape',
+        sizeCode: paperSizeMap[parseInt(paperSizeCodeRaw, 10)] ?? 7, // افتراضي A4
+        fitToPage: !!fitToPageTag
+      };
+    }
+  } catch (err) {
+    console.error('تعذر قراءة إعدادات الطباعة من الملف الأصلي، هنستخدم إعدادات افتراضية (A4 طولي، ملائمة صفحة):', err);
+  }
+  return result;
 }
 
 function getAuth() {
@@ -77,6 +140,10 @@ export default async function handler(req, res) {
 
   let fileId = null;
   try {
+    const fileBuffer = Buffer.from(fileBase64, 'base64');
+    const pageSetups = await extractPageSetups(fileBuffer);
+    const DEFAULT_CONFIG = { portrait: true, sizeCode: 7, fitToPage: true };
+
     // 1) ارفع الملف وحوّله لـ Google Sheet في نفس الخطوة
     const createRes = await drive.files.create({
       requestBody: {
@@ -86,7 +153,7 @@ export default async function handler(req, res) {
       },
       media: {
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        body: bufferToStream(Buffer.from(fileBase64, 'base64'))
+        body: bufferToStream(fileBuffer)
       },
       fields: 'id'
     });
@@ -105,19 +172,29 @@ export default async function handler(req, res) {
       throw new Error('الملف مفيهوش أي شيتات ظاهرة تتصدّر');
     }
 
-    // 3) صدّر الملف كله كـ PDF بطلب واحد بس وسريع.
-    // اكتشفنا إن رابط تصدير جوجل شيتس لو *ماتكتبش gid خالص* (مش تكرره
-    // ومش تسيبه فاضي)، بيصدّر كل الشيتات الظاهرة مرة واحدة في نفس ملف
-    // الـ PDF، كل شيت بإعدادات الطباعة (اتجاه/مقاس/منطقة طباعة) بتاعته
-    // هو، وده أسرع بكتير من إننا نطلب كل شيت لوحده. المشكلة الأصلية
-    // كانت إننا كنا بنكرر gid= لكل شيت في نفس اللينك، وده اللي كان
-    // بيخلي جوجل ياخد شيت واحد بس.
-    //
-    // احتياطًا (لو التصرف ده اتغيّر من جوجل أو ملف معين اتصرف بشكل
-    // مختلف)، بعد ما ناخد الـ PDF بنتاكد إن عدد صفحاته يطابق عدد
-    // الشيتات الظاهرة. لو مطابق، نرجعه على طول. لو مش مطابق، نرجع
-    // لطريقة الاحتياط الأبطأ: نصدّر كل شيت لوحده (بالتتابع مع فواصل
-    // زمنية وإعادة محاولة لو حصل 429) ونلزقهم بمكتبة pdf-lib.
+    // 3) صدّر الملف كـ PDF، باستخدام إعدادات الطباعة الحقيقية لكل شيت
+    // (الاتجاه/مقاس الورق/هل الشيت مظبوط "ملائمة صفحة") اللي قرأناها من
+    // الملف الأصلي فوق. لو كل الشيتات الظاهرة بنفس الإعدادات بالظبط،
+    // بنعمل طلب واحد سريع للملف كله (بدون gid — جوجل بيصدّر وقتها كل
+    // الشيتات الظاهرة مرة واحدة). لو الإعدادات مختلفة من شيت لشيت (زي لو
+    // شيت طولي وشيت عرضي في نفس الملف)، لازم نصدّر كل شيت لوحده بإعداداته
+    // الصح، لإن الطلب الواحد مش هيقدر يطبّق أكتر من اتجاه/مقاس في نفس
+    // الوقت.
+    const sheetConfigs = visibleSheets.map(p => pageSetups[p.title] || DEFAULT_CONFIG);
+    const allSameConfig = sheetConfigs.every(c =>
+      c.portrait === sheetConfigs[0].portrait &&
+      c.sizeCode === sheetConfigs[0].sizeCode &&
+      c.fitToPage === sheetConfigs[0].fitToPage
+    );
+
+    function buildExportUrl(cfg, gid) {
+      const fitParams = cfg.fitToPage ? 'fitw=true&fith=true&scale=4' : 'scale=1';
+      return `https://docs.google.com/spreadsheets/d/${fileId}/export` +
+        `?format=pdf&size=${cfg.sizeCode}&portrait=${cfg.portrait}&${fitParams}` +
+        `&gridlines=true&printtitle=false&sheetnames=false&pagenumbers=false` +
+        (gid !== undefined ? `&gid=${gid}` : '');
+    }
+
     const tokenResult = await auth.getAccessToken();
     const accessToken = (typeof tokenResult === 'string') ? tokenResult : tokenResult.token;
 
@@ -138,34 +215,32 @@ export default async function handler(req, res) {
 
     let finalPdfBytes = null;
 
-    // --- المحاولة السريعة: طلب واحد بدون gid خالص ---
-    try {
-      const allSheetsUrl =
-        `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-        `?format=pdf&size=A4&fitw=true&fith=true&scale=4&gridlines=true&printtitle=false` +
-        `&sheetnames=false&pagenumbers=false`;
-      const pdfResp = await retryFetch(allSheetsUrl);
-      if (pdfResp.ok) {
-        const bytes = await pdfResp.arrayBuffer();
-        const pdf = await PDFDocument.load(bytes);
-        if (pdf.getPageCount() === visibleSheets.length) {
-          finalPdfBytes = bytes;
+    // --- المحاولة السريعة: طلب واحد بدون gid (بس بس لو كل الشيتات متطابقة الإعدادات) ---
+    if (allSameConfig) {
+      try {
+        const allSheetsUrl = buildExportUrl(sheetConfigs[0]);
+        const pdfResp = await retryFetch(allSheetsUrl);
+        if (pdfResp.ok) {
+          const bytes = await pdfResp.arrayBuffer();
+          const pdf = await PDFDocument.load(bytes);
+          if (pdf.getPageCount() === visibleSheets.length) {
+            finalPdfBytes = bytes;
+          }
         }
+      } catch (fastPathErr) {
+        console.error('المحاولة السريعة (بدون gid) فشلت، هنرجع للطريقة الاحتياطية:', fastPathErr);
       }
-    } catch (fastPathErr) {
-      console.error('المحاولة السريعة (بدون gid) فشلت، هنرجع للطريقة الاحتياطية:', fastPathErr);
     }
 
-    // --- الطريقة الاحتياطية: شيت شيت لوحده ثم لزق بمكتبة pdf-lib ---
+    // --- الطريقة الاحتياطية: شيت شيت لوحده بإعداداته الخاصة ثم لزق بمكتبة pdf-lib ---
     if (!finalPdfBytes) {
       const GAP_BETWEEN_REQUESTS_MS = 600; // فترة ثابتة بعد كل طلب ناجح قبل ما نبعت اللي بعده
       const sheetPdfBuffers = [];
 
-      for (const sheetProps of visibleSheets) {
-        const exportUrl =
-          `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-          `?format=pdf&size=A4&fitw=true&fith=true&scale=4&gridlines=true&printtitle=false` +
-          `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
+      for (let i = 0; i < visibleSheets.length; i++) {
+        const sheetProps = visibleSheets[i];
+        const cfg = sheetConfigs[i];
+        const exportUrl = buildExportUrl(cfg, sheetProps.sheetId);
 
         const pdfResp = await retryFetch(exportUrl);
         if (!pdfResp.ok) {
