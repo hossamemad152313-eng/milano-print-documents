@@ -189,9 +189,12 @@ export default async function handler(req, res) {
 
     function buildExportUrl(cfg, gid) {
       const fitParams = cfg.fitToPage ? 'fitw=true&fith=true&scale=4' : 'scale=1';
+      // هوامش شبه معدومة (بوصة) عشان المحتوى ياخد أكبر مساحة ممكنة من
+      // الورقة بدل ما يفضل فراغ أبيض كبير حوالين الحواف.
+      const margins = 'top_margin=0.05&bottom_margin=0.05&left_margin=0.05&right_margin=0.05';
       return `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-        `?format=pdf&size=${cfg.sizeCode}&portrait=${cfg.portrait}&${fitParams}` +
-        `&gridlines=true&printtitle=false&sheetnames=false&pagenumbers=false` +
+        `?format=pdf&size=${cfg.sizeCode}&portrait=${cfg.portrait}&${fitParams}&${margins}` +
+        `&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=false` +
         (gid !== undefined ? `&gid=${gid}` : '');
     }
 
