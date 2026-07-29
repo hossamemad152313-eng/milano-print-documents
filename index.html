@@ -1223,6 +1223,24 @@ async function convertPdfSource(){
       throw new Error(errData.error || ('فشل التحويل على السيرفر (خطأ ' + res.status + ')'));
     }
     const pdfBuffer = await res.arrayBuffer();
+
+    // TEMP DEBUG: تنزيل نسخة من الـ PDF الخام زي ما راجع من CloudConvert،
+    // قبل أي تحويل لصورة، عشان نتأكد المشكلة قبل خطوة pdf.js ولا بعدها.
+    // شيل السطور دي بعد ما تخلص اختبار.
+    try {
+      const debugBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
+      const debugUrl = URL.createObjectURL(debugBlob);
+      const a = document.createElement('a');
+      a.href = debugUrl;
+      a.download = 'debug-raw-' + (file.name.replace(/\.[^.]+$/, '') || 'output') + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // مانعملش revokeObjectURL فورًا عشان نضمن التحميل يخلص الأول
+    } catch (dbgErr) {
+      console.error('تعذر تنزيل نسخة الـ PDF الخام للتشخيص:', dbgErr);
+    }
+
     statusEl.textContent = '⏳ جارِ تقطيع الملف لنماذج منفصلة...';
     await splitPdfIntoPreviewPages(pdfBuffer);
     statusEl.textContent = '✅ اتحول ' + pendingPdfPages.length + ' نموذج. راجع الأسامي تحت وبعدين دوس "ضيف كل النماذج المحددة".';
