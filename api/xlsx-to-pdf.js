@@ -142,7 +142,7 @@ export default async function handler(req, res) {
     try {
       const allSheetsUrl =
         `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-        `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
+        `?format=pdf&size=A4&fitw=true&fith=true&scale=4&gridlines=true&printtitle=false` +
         `&sheetnames=false&pagenumbers=false`;
       const pdfResp = await retryFetch(allSheetsUrl);
       if (pdfResp.ok) {
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
       for (const sheetProps of visibleSheets) {
         const exportUrl =
           `https://docs.google.com/spreadsheets/d/${fileId}/export` +
-          `?format=pdf&size=A4&fitw=true&gridlines=true&printtitle=false` +
+          `?format=pdf&size=A4&fitw=true&fith=true&scale=4&gridlines=true&printtitle=false` +
           `&sheetnames=false&pagenumbers=false&gid=${sheetProps.sheetId}`;
 
         const pdfResp = await retryFetch(exportUrl);
