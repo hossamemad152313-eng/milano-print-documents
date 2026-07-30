@@ -191,7 +191,7 @@ export default async function handler(req, res) {
       const fitParams = cfg.fitToPage ? 'fitw=true&fith=true&scale=4' : 'scale=1';
       // هوامش شبه معدومة (بوصة) عشان المحتوى ياخد أكبر مساحة ممكنة من
       // الورقة بدل ما يفضل فراغ أبيض كبير حوالين الحواف.
-      const margins = 'top_margin=0.05&bottom_margin=0.05&left_margin=0.05&right_margin=0.05';
+      const margins = 'top_margin=0.1&bottom_margin=0.1&left_margin=0.1&right_margin=0.1';
       return `https://docs.google.com/spreadsheets/d/${fileId}/export` +
         `?format=pdf&size=${cfg.sizeCode}&portrait=${cfg.portrait}&${fitParams}&${margins}` +
         `&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=false` +
